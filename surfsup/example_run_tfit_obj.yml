@@ -1,0 +1,56 @@
+# Parameter file for running TFIT object by object
+tfitdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/macs1149/irac/ch1/tfit"
+# tfitdir: where to put TFIT results
+hiresdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/macs1149/hst"
+# where one can find high-res images
+loresdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/macs1149/irac/ch1"
+# where one can find low-res images
+
+
+# hr_xmin: 1834
+# hr_xmax: 2334   
+# hr_ymin: 2164
+# hr_ymax: 2663
+# Here I gotta be careful about which neighbors to include in the fit... make 
+# sure that the mean residual flux is small compared with sky RMS
+# bkgd_xmin: 200
+# bkgd_xmax: 245
+# bkgd_ymin: 226
+# bkgd_ymax: 266
+# target information; can have a list of objects, then the length of ra, dec, 
+# and objname should all be the same.
+ra: [109.382022]
+dec: [37.767622]
+objnames: ["B14_145"]
+# coordinates of the object, in degrees
+fit_boxsize: 3.0
+# size of the box around each target to fit simultaneously
+bkgd_boxsize: 3.0
+# size of the box within which to determine local background, in arcsec
+# skyrms: 0.905e-3
+
+growsig: 0.4
+# how much to grow the mask in background determination
+hires_scale: 0.06      # pixel size of hi-res images, in arcsec
+lores_scale: 0.6      # pixel size of low-res images, in arcsec
+
+# Hi-res images & catalogs, within hiresdir
+hires_drz: "f160w_macs1149_cut_60mas_drz.fits"
+hires_seg: "f160w_macs1149_cut_60mas_seg_clean.fits"
+hires_flag: "wfc3ir_tot_macs1149_cut_60mas_flg.fits"
+hires_cat: "f160w_macs1149_60mas_cut_131110.cat"
+hires_cutoutcat: "ch1_macs1149_60mas.cat"
+
+# Low-res images & catalogs
+lores_drz: "ch1_macs1149_pf0.01_cut_drz.fits"
+lores_seg: "ch1_macs1149_pf0.01_cut_seg_imedit.fits"
+lores_err: "ch1_macs1149_pf0.01_cut_unc.fits"
+
+tfitpars1: "ch1_macs1149_pass1.param"
+tfitpars2: "ch1_macs1149_pass2.param"
+cutoutdir: "allcut"
+tfitcat: "ch1_macs1149_tfit_pass2.cat"
+band: "ch1"
+cluster: "macs1149"
+chi2box: 8     # in pixels
+

@@ -1,0 +1,6 @@
+syntax:glob
+
+wcstools-3.8.1/
+*.pyc
+pyraf/
+.hgignore.*

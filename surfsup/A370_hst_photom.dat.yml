@@ -1,0 +1,71 @@
+cluster_name: "a370"
+image_dir: "/Users/khuang/Frontier_fields/A370/hst/60mas"
+homedir: "/Users/khuang/Dropbox/Research/frontier_fields/A370/hst"
+merged_table: "hst_A370_60mas_merged.fits"
+sexfile: "f160w_a370_60mas.sex"
+filters: 
+   - 'f475w'
+   - 'f625w'
+   - 'f814w'
+   - 'f110w'
+   - 'f140w'
+   - 'f160w'
+detectband: 'f160w'
+scale: 0.06   # pixel scale in arcsec
+drz_images:
+   f475w: "f475w_a370_60mas_v0.2_cut_drz.fits"
+   f625w: "f625w_a370_60mas_v0.2_cut_drz.fits"
+   f814w: "f814w_a370_60mas_v0.2_cut_drz.fits"
+   f110w: "f110w_a370_60mas_v0.2_cut_drz.fits"
+   f140w: "f140w_a370_60mas_v0.2_cut_drz.fits"
+   f160w: "f160w_a370_60mas_v0.2_cut_drz.fits"
+wht_images: 
+   f475w: "f475w_a370_60mas_v0.2_cut_wht.fits"
+   f625w: "f625w_a370_60mas_v0.2_cut_wht.fits"
+   f814w: "f814w_a370_60mas_v0.2_cut_wht.fits"
+   f110w: "f110w_a370_60mas_v0.2_cut_wht.fits"
+   f140w: "f140w_a370_60mas_v0.2_cut_wht.fits"
+   f160w: "f160w_a370_60mas_v0.2_cut_wht.fits"
+flg_images:
+   f475w: "f475w_a370_60mas_v0.2_cut_flg.fits"
+   f625w: "f625w_a370_60mas_v0.2_cut_flg.fits"
+   f814w: "f814w_a370_60mas_v0.2_cut_flg.fits"
+   f110w: "f110w_a370_60mas_v0.2_cut_flg.fits"
+   f140w: "f140w_a370_60mas_v0.2_cut_flg.fits"
+   f160w: "f160w_a370_60mas_v0.2_cut_flg.fits"
+zeropoints:   # within an infinite aperture; same as calculated from PHOTFLAM and PHOTPLAM
+   # NOT corrected for extinction! 
+   f475w: 26.046
+   f625w: 25.890
+   f814w: 25.937
+   f110w: 26.812
+   f140w: 26.442
+   f160w: 25.936
+ext_coeff: 
+   f475w: 3.724
+   f625w: 2.671
+   f814w: 1.822
+   f110w: 0.876
+   f140w: 0.609 
+   f160w: 0.470
+ebmv_mean: 0.0323   # +/- 0.0009; for Abell 370
+# apcor:
+#    f435w: 0.
+#    f814w: 0.06
+#    f098m: 0.08
+#    f125w: 0.19
+#    f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f475w: 36120.0
+   f625w: 8160.0
+   f814w: 53760.0
+   f110w: 6529.38
+   f140w: 10588.18
+   f160w: 6029.37
+skyrms_factor:
+   f475w: 1.221
+   f625w: 1.188
+   f814w: 1.165
+   f110w: 1.738
+   f140w: 1.609
+   f160w: 1.752

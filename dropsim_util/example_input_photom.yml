@@ -1,0 +1,21 @@
+# An example input parameter file for calculating input photometry for simulations
+NUMBER:  2000000
+MLO:     -25.0
+MHI:     -15.0
+MDIST:   single
+EXTLO:   0.
+EXTHI:   0.3
+EXTDIST: uniform
+# EXTPEAK: 0.15
+# EXTSIGMA: 0.1
+# EXTDIST: gaussian
+ZLO:     3.0
+ZHI:     10.0
+SPEC:    /Users/khuang/Dropbox/codes/mypytools/sedtools/galtemplates/lbgtemp_z6_0.4Zsolar_constSFH_100Myr.sed
+CATNAME: highz_colors_z3-10.fits
+BANDS:   "highz_bands"  # or a list of filter names
+# LYADIST: /Users/khuang/Dropbox/codes/mypytools/dropsim_util/Lya_EW_dist.txt
+LYADIST: uniform
+LYA_EW0: 0.
+LYA_EW1: 20.
+NPROC:   4

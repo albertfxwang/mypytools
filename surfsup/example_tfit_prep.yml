@@ -1,0 +1,69 @@
+cluster_name: 'rxj1347'
+# len(hr_bands) = 1 if the detection band is the same as photometry band
+# otherwise, hr_bands[0] = detection band, hr_bands[1] = high-res photometry band for TFIT,
+# and hr_bands[2:] are additional bands for which **only SWARP** will be run.
+hr_bands: 
+   - "wfc3ir_tot"
+   - "F160W"
+   # - "F435W"
+   # - "F475W"
+   # - "F606W"
+   # - "F625W"
+   # - "F775W"
+   # - "F814W"
+   # - "F850LP"
+   # - "F105W"
+   # - "F110W"
+   # - "F125W"
+   # - "F140W"  
+lr_bands: ["ch1", "ch2"]
+hr_dir: "/Users/khuang/SurfsUp/RXJ1347/hst/30mas"
+lr_dir: "/Users/khuang/SurfsUp/RXJ1347/irac"
+stages:
+   - blocksum
+   - shift_crpix
+   # - hst_bgcorr
+   # - hst_sextractor
+   # - irac_sextractor
+hr_sexfile: "f160w_RXJ1347_60mas.sex"
+lr_sexfile: "irac_default.sex"
+# pixel scales of the (desired) high-res and low-res images
+hr_scale: 0.06
+lr_scale: 0.6
+# if blocksum, this is the number of input pixels in each block (for both x and y)
+blocksum_factor: 2   
+magzpt: 25.946  # of the hi-res photometry band
+hr_sexcat: 'f160w_rxj1347_60mas_blksum.cat'
+hr_tfit_cat: 'f160w_rxj1347_60mas_blksum_4tfit.cat'
+# hst_bkdg_param: "f160w_rxj1347_cut_60mas_bkgd.param"
+swarp_file: "f160w_rxj1347_to60mas.swarp"
+hr_input_drz: 
+   - "hlsp_clash_hst_wfc3ir-30mas_rxj1347_total_v1_cut_drz.fits"
+   - "hlsp_clash_hst_wfc3ir-30mas_rxj1347_f160w_v1_cut_drz.fits"
+hr_input_wht: 
+   - "hlsp_clash_hst_wfc3ir-30mas_rxj1347_total_v1_cut_wht.fits"
+   - "hlsp_clash_hst_wfc3ir-30mas_rxj1347_f160w_v1_cut_wht.fits"
+hr_input_flg: "wfc3ir_tot_rxj1347_cut_60mas_blksum_flg.fits"
+# hr_input_seg: "wfc3ir_detect_rxj1347_65mas_seg.fits"
+hr_output_drz:
+   - "wfc3ir_tot_rxj1347_cut_60mas_blksum_drz.fits"
+   - "f160w_rxj1347_cut_60mas_blksum_drz.fits"
+hr_output_wht:
+   - "wfc3ir_tot_rxj1347_cut_60mas_blksum_wht.fits"
+   - "f160w_rxj1347_cut_60mas_blksum_wht.fits"
+hr_output_flg: "wfc3ir_tot_rxj1347_cut_60mas_blksum_flg.fits"
+hr_output_seg: "wfc3ir_tot_rxj1347_cut_60mas_blksum_seg.fits"
+# pixscale: 0.06   # desired high-res image pixel scale, in arcsec
+lr_drz: 
+   - "ch1/ch1_rxj1347_cut_drz.fits"
+   - "ch2/ch2_rxj1347_cut_drz.fits"
+lr_unc: 
+   - "ch1/ch1_rxj1347_cut_unc.fits"
+   - "ch2/ch2_rxj1347_cut_unc.fits"
+lr_flg:
+   - "ch1/ch1_rxj1347_cut_flg.fits"
+   - "ch2/ch2_rxj1347_cut_flg.fits"
+lr_wht:
+   - "ch1/ch1_rxj1347_cut_wht.fits"
+   - "ch2/ch2_rxj1347_cut_wht.fits"
+use_bgcorr: no

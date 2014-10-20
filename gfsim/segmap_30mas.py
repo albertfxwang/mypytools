@@ -1,0 +1,1 @@
+/Users/khuang/Dropbox/codes/mypytools/bivariate/segmap_30mas.py

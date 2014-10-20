@@ -1,0 +1,71 @@
+# Output column names from sextractor_sim
+# Use U-dropout simulations as an example
+SEXTRACTOR_COLUMNS:
+   # Columns from SExtractor measurements; these are different for different 
+   # bands
+   - X_IMAGE
+   - Y_IMAGE
+   - ALPHA_J2000
+   - DELTA_J2000
+   - ISOAREA_IMAGE
+   - THETA_IMAGE
+   - ELLIPTICITY
+   - KRON_RADIUS
+   - FLUX_RADIUS
+   - FLUX_RADIUS_1
+   - FLUX_RADIUS_2
+   - CLASS_STAR
+   - FLAGS
+   - IMAFLAGS_ISO
+   - NIMAFLAGS_ISO
+   - BACKGROUND
+   - MAG_ISO
+   - MAGERR_ISO
+   - FLUX_ISO
+   - FLUXERR_ISO
+   - MAG_AUTO
+   - MAGERR_AUTO
+   - FLUX_AUTO
+   - FLUXERR_AUTO
+   - MAG_APER
+   - MAG_APER_1
+   - MAG_APER_2
+   - MAG_APER_3
+   - MAG_APER_4
+   - MAGERR_APER
+   - MAGERR_APER_1
+   - MAGERR_APER_2
+   - MAGERR_APER_3
+   - MAGERR_APER_4
+   - FLUX_APER
+   - FLUX_APER_1
+   - FLUX_APER_2
+   - FLUX_APER_3
+   - FLUX_APER_4
+   - FLUXERR_APER
+   - FLUXERR_APER_1
+   - FLUXERR_APER_2
+   - FLUXERR_APER_3
+   - FLUXERR_APER_4
+   - A_IMAGE
+   - B_IMAGE
+INPUT_BAND_COLUMNS:
+   # Input columns that are different for different filters
+   - MAG_IN
+INPUT_ALL_COLUMNS:
+   # Input columns that are the same for all filters
+   # ===================== #
+   # The columns below are hard-coded into sextractor_sim.py 
+   - X_IN
+   - Y_IN
+   - RE_IN
+   # - RE_IN_ARCSEC
+   - GTYPE_IN
+   - AXIS_RATIO_IN
+   - PA_IN
+   - ID_THISRUN
+   # ===================== #
+   # - M1500_IN
+   # - U_MAG_IN
+   # - EBMV
+   # - REDSHIFT

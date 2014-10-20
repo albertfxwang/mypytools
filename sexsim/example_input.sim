@@ -1,0 +1,38 @@
+# Same as run5m, except adding in the other bands
+# H. Ferguson 3/21/03
+# Artificial source simulations with SExtractor...
+NGALAXIES:             40 
+NSTOP:                 1
+NSTART:                0
+SEXFILE:               sexsim.sex
+SEXTPARFILE:           sexsim.param
+MULTIBAND:             yes
+MAGFILE:               ["input_photometry.cat"]  # has to be SExtractor format
+# BANDS:                 ["H", "J"]
+BANDS:                 ["H"]
+DETECTBAND:            H
+PSFFILE:               ["psf_deep_f160w_60mas.fits"]
+# PSFMATCH:            False
+# PSFMATCH_KERNELS:    
+#   H: "kernel_h.fits"   # must give filter name as keys
+REALIMAGE:             ["gds_f160w_testsim_drz.fits"]
+FLAGIMAGE:             ["gds_f160w_testsim_flg.fits"]
+RMSIMAGE:              ["gds_f160w_testsim_rms.fits"]
+GAIN:                  [25544.3]
+SAVE:                  yes   # for tests
+SAVE_SEGMENTATION:     yes
+CIRCULAR:              no
+DISKFRAC:              0.7
+SCALE:                 0.06   # arcsec per pixel
+MAGLOW:                23.0
+MAGHIGH:               30.0
+MAGZPT:                [25.960]
+RMIN:                  0.005    # minimum input radius arcsec
+RMAX:                  3.0     # maximum input radius arcsec
+FLAGMAX:               1
+RUN_SEXTRACTOR:        yes
+RADIUS_DISTRIBUTION:   loguniform  # uniform or lognormal or loguniform
+LOGNORMAL_MAG0:        23.72       # implemented
+LOGNORMAL_PEAK:        0.5 
+LOGNORMAL_SIGMA:       0.5
+LOGNORMAL_BETA:        0.3333

@@ -1,0 +1,9 @@
+Installation instructions:
+
+To install in the system-wide python locations:
+  python setup.py install
+
+To install in your ~/lib/python directory:
+  python setup.py install --home=~
+
+For other setup.py options, see: http://docs.python.org/install/index.html.

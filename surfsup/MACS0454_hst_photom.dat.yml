@@ -1,0 +1,59 @@
+# 50 mas images
+cluster_name: "MACS0454"
+image_dir: "/Users/khuang/SurfsUp/MACS0454/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS0454/hst"
+merged_table: "hst_MACS0454_50mas_merged.fits"
+sexfile: "f160w_macs0454_50mas.sex"
+filters: 
+   - 'f555w'
+   - 'f814w'
+   - 'f110w'
+   - 'f160w'
+detectband: 'f160w'
+scale: 0.05   # pixel scale in arcsec
+drz_images:
+   f555w: 'F555W_MACS0454_PAR1_drz_sci.fits'
+   f814w: 'F814W_MACS0454_PAR1_drz_sci.fits'
+   f110w: 'F110W_MACS0454_PAR1_drz_sci.fits'
+   f160w: 'F160W_MACS0454_PAR1_drz_sci.fits'
+wht_images: 
+   f555w: 'F555W_MACS0454_PAR1_drz_weight.fits'
+   f814w: 'F814W_MACS0454_PAR1_drz_weight.fits'
+   f110w: 'F110W_MACS0454_PAR1_drz_weight.fits'
+   f160w: 'F160W_MACS0454_PAR1_drz_weight.fits'
+flg_images:
+   f555w: 'f555w_MACS0454_flg.fits'
+   f814w: 'f814w_MACS0454_flg.fits'
+   f110w: 'f110w_MACS0454_flg.fits'
+   f160w: 'f160w_MACS0454_flg.fits'
+zeropoints:   # Do NOT correct for extinction! will do it in hst_pipeline.py
+   f555w: 25.728  
+   f814w: 25.953  
+   f110w: 26.830  
+   f160w: 25.960  
+ext_coeff: 
+   f555w: 3.327   # this is an average of the coefficient of F475W and F606W...
+   f814w: 1.822
+   f110w: 0.876 
+   f160w: 0.47
+ebmv_mean: 0.0344   # +/- 0.0009; for Abell 370
+# apcor:
+#    f435w: 0.
+#    f814w: 0.06
+#    f098m: 0.08
+#    f125w: 0.19
+#    f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f555w: 4410.0
+   f814w: 18804.0
+   f110w: 6529.38
+   f160w: 6029.37
+skyrms_factor:  # scaling factor for flux error within 0.4 arcsec aperture
+   # f555w: 1.612
+   # f814w: 2.015
+   # f110w: 1.613
+   # f160w: 1.620
+   f555w: 1.111
+   f814w: 1.401
+   f110w: 2.059
+   f160w: 2.154

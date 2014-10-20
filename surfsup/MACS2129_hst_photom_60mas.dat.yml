@@ -1,0 +1,152 @@
+# 50 mas images
+cluster_name: "MACS2129"
+image_dir: "/Users/khuang/SurfsUp/MACS2129/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS2129/hst"
+merged_table: "hst_macs2129_60mas_merged.fits"
+sexfile: "wfc3ir_macs2129_60mas.sex"
+filters: 
+   - "f435w" 
+   - "f475w"
+   - "f555w"
+   - "f606w"
+   - "f625w"
+   - "f775w"
+   - "f814w"
+   - "f850lp"
+   - "f105w"
+   - "f110w"
+   - "f125w"
+   - "f140w"
+   - "f160w"
+   - "wfc3ir"
+detectband: 'wfc3ir'
+scale: 0.06   # pixel scale in arcsec
+drz_images:
+   f435w:  "f435w_macs2129_cut_60mas_blksum_drz.fits"
+   f475w:  "f475w_macs2129_cut_60mas_blksum_drz.fits"
+   f555w:  "f555w_macs2129_cut_60mas_blksum_drz.fits"
+   f606w:  "f606w_macs2129_cut_60mas_blksum_drz.fits"
+   f625w:  "f625w_macs2129_cut_60mas_blksum_drz.fits"
+   f775w:  "f775w_macs2129_cut_60mas_blksum_drz.fits"
+   f814w:  "f814w_macs2129_cut_60mas_blksum_drz.fits"
+   f850lp: "f850lp_macs2129_cut_60mas_blksum_drz.fits"
+   # f105w:  "f105w_macs2129_cut_60mas_blksum_drz.fits"
+   # f110w:  "f110w_macs2129_cut_60mas_blksum_drz.fits"
+   # f125w:  "f125w_macs2129_cut_60mas_blksum_drz.fits"
+   # f140w:  "f140w_macs2129_cut_60mas_blksum_drz.fits"
+   # f160w:  "f160w_macs2129_cut_60mas_blksum_drz.fits"
+   f105w:  "f105w_macs2129_cut_60mas_wglass_drz.fits"
+   f110w:  "f110w_macs2129_cut_60mas_wglass_drz.fits"
+   f125w:  "f125w_macs2129_cut_60mas_wglass_drz.fits"
+   f140w:  "f140w_macs2129_cut_60mas_wglass_drz.fits"
+   f160w:  "f160w_macs2129_cut_60mas_wglass_drz.fits"
+   wfc3ir: "wfc3ir_tot_macs2129_cut_60mas_blksum_drz.fits"
+wht_images: 
+   f435w:  "f435w_macs2129_cut_60mas_blksum_wht.fits"
+   f475w:  "f475w_macs2129_cut_60mas_blksum_wht.fits"
+   f555w:  "f555w_macs2129_cut_60mas_blksum_wht.fits"
+   f606w:  "f606w_macs2129_cut_60mas_blksum_wht.fits"
+   f625w:  "f625w_macs2129_cut_60mas_blksum_wht.fits"
+   f775w:  "f775w_macs2129_cut_60mas_blksum_wht.fits"
+   f814w:  "f814w_macs2129_cut_60mas_blksum_wht.fits"
+   f850lp: "f850lp_macs2129_cut_60mas_blksum_wht.fits"
+   # f105w:  "f105w_macs2129_cut_60mas_wglass_wht.fits"
+   # f110w:  "f110w_macs2129_cut_60mas_blksum_wht.fits"
+   # f125w:  "f125w_macs2129_cut_60mas_blksum_wht.fits"
+   # f140w:  "f140w_macs2129_cut_60mas_wglass_wht.fits"
+   # f160w:  "f160w_macs2129_cut_60mas_blksum_wht.fits"
+   f105w:  "f105w_macs2129_cut_60mas_wglass_wht.fits"
+   f110w:  "f110w_macs2129_cut_60mas_wglass_wht.fits"
+   f125w:  "f125w_macs2129_cut_60mas_wglass_wht.fits"
+   f140w:  "f140w_macs2129_cut_60mas_wglass_wht.fits"
+   f160w:  "f160w_macs2129_cut_60mas_wglass_wht.fits"
+   wfc3ir: "wfc3ir_tot_macs2129_cut_60mas_blksum_wht.fits"
+flg_images:
+   f435w:  "f435w_macs2129_cut_60mas_blksum_flg.fits"
+   f475w:  "f475w_macs2129_cut_60mas_blksum_flg.fits"
+   f555w:  "f555w_macs2129_cut_60mas_blksum_flg.fits"
+   f606w:  "f606w_macs2129_cut_60mas_blksum_flg.fits"
+   f625w:  "f625w_macs2129_cut_60mas_blksum_flg.fits"
+   f775w:  "f775w_macs2129_cut_60mas_blksum_flg.fits"
+   f814w:  "f814w_macs2129_cut_60mas_blksum_flg.fits"
+   f850lp: "f850lp_macs2129_cut_60mas_blksum_flg.fits"
+   # f105w:  "f105w_macs2129_cut_60mas_wglass_flg.fits"
+   # f110w:  "f110w_macs2129_cut_60mas_blksum_flg.fits"
+   # f125w:  "f125w_macs2129_cut_60mas_blksum_flg.fits"
+   # f140w:  "f140w_macs2129_cut_60mas_wglass_flg.fits"
+   # f160w:  "f160w_macs2129_cut_60mas_blksum_flg.fits"
+   f105w:  "f105w_macs2129_cut_60mas_wglass_flg.fits"
+   f110w:  "f110w_macs2129_cut_60mas_wglass_flg.fits"
+   f125w:  "f125w_macs2129_cut_60mas_wglass_flg.fits"
+   f140w:  "f140w_macs2129_cut_60mas_wglass_flg.fits"
+   f160w:  "f160w_macs2129_cut_60mas_wglass_flg.fits"
+   wfc3ir: "wfc3ir_tot_macs2129_cut_60mas_blksum_flg.fits"
+zeropoints:   # Do NOT correct for extinction! will do it in hst_pipeline.py
+   f435w: 25.648
+   f475w: 26.049
+   f555w: 25.725
+   f606w: 26.481
+   f625w: 25.897
+   f775w: 25.655
+   f814w: 25.949
+   f850lp: 24.832
+   f105w: 26.259
+   f110w: 26.812
+   f125w: 26.220
+   f140w: 26.442
+   f160w: 25.936
+   wfc3ir: 26.000  # fiducial value
+ext_coeff: 
+   f435w: 4.117
+   f475w: 3.724
+   f555w: 3.239
+   f606w: 2.929
+   f625w: 2.671
+   f775w: 2.018
+   f814w: 1.822
+   f850lp: 1.473
+   f105w: 1.015
+   f110w: 0.876
+   f125w: 0.757
+   f140w: 0.609
+   f160w: 0.470
+   wfc3ir: 0.
+ebmv_mean: 0.0799  # +/- 0.0009; for Abell 370
+# apcor:
+#    f435w: 0.
+#    f814w: 0.06
+#    f098m: 0.08
+#    f125w: 0.19
+#    f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f435w: 7456.0
+   f475w: 8080.0
+   f555w: 8880.0
+   f606w: 7456.0
+   f625w: 7692.0
+   f775w: 8096.0
+   f814w: 26792.0
+   f850lp: 15616.0
+   f105w: 9360.02
+   f110w: 2514.67
+   f125w: 2514.67
+   f140w: 11132.03
+   f160w: 10058.68
+   wfc3ir: 1.0
+skyrms_factor:  # scaling factor for flux error within r=0.3 arcsec aperture
+   f435w:  1.132
+   f475w:  1.171
+   f555w:  1.199
+   f606w:  1.216
+   f625w:  1.140
+   f775w:  1.133
+   f814w:  1.309
+   f850lp: 1.215
+   # f105w:  1.930
+   f105w:  1.969
+   f110w:  1.923
+   f125w:  1.962
+   # f140w:  2.033
+   f140w:  2.066
+   f160w:  2.260
+   wfc3ir: 1.0

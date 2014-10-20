@@ -1,0 +1,72 @@
+cluster_name: "MACS0717"
+image_dir: "/Users/khuang/SurfsUp/MACS0717/hst/60mas/hff"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/macs0717/hst"
+merged_table: "hst_macs0717_60mas_hff_merged.fits"
+sexfile: "wfc3ir_macs0717_60mas.sex"
+filters:
+   - "f435w" 
+   - "f606w"
+   - "f814w"
+   - "f105w"
+   - "f125w"
+   - "f140w"
+   - "f160w"
+detectband: "f160w"
+scale: 0.060   # in arcsec
+drz_images:
+   f435w:  "f435w_macs0717_cut_60mas_hff_drz.fits"
+   f606w:  "f606w_macs0717_cut_60mas_hff_drz.fits"
+   f814w:  "f814w_macs0717_cut_60mas_hff_drz.fits"
+   f105w:  "f105w_macs0717_cut_60mas_hff_drz.fits"
+   f125w:  "f125w_macs0717_cut_60mas_hff_drz.fits"
+   f140w:  "f140w_macs0717_cut_60mas_hff_drz.fits"
+   f160w:  "f160w_macs0717_cut_60mas_hff_drz.fits"
+wht_images:
+   f435w:  "f435w_macs0717_cut_60mas_hff_wht.fits"
+   f606w:  "f606w_macs0717_cut_60mas_hff_wht.fits"
+   f814w:  "f814w_macs0717_cut_60mas_hff_wht.fits"
+   f105w:  "f105w_macs0717_cut_60mas_hff_wht.fits"
+   f125w:  "f125w_macs0717_cut_60mas_hff_wht.fits"
+   f140w:  "f140w_macs0717_cut_60mas_hff_wht.fits"
+   f160w:  "f160w_macs0717_cut_60mas_hff_wht.fits"
+flg_images:
+   f435w:  "f435w_macs0717_cut_60mas_hff_flg.fits"
+   f606w:  "f606w_macs0717_cut_60mas_hff_flg.fits"
+   f814w:  "f814w_macs0717_cut_60mas_hff_flg.fits"
+   f105w:  "f105w_macs0717_cut_60mas_hff_flg.fits"
+   f125w:  "f125w_macs0717_cut_60mas_hff_flg.fits"
+   f140w:  "f140w_macs0717_cut_60mas_hff_flg.fits"
+   f160w:  "f160w_macs0717_cut_60mas_hff_flg.fits"
+zeropoints:
+   f435w: 25.656
+   f606w: 26.495
+   f814w: 25.937
+   f105w: 26.259
+   f125w: 26.220
+   f140w: 26.442
+   f160w: 25.936
+ebmv_mean: 0.0761 
+ext_coeff:
+   f435w: 4.117
+   f606w: 2.929
+   f814w: 1.822
+   f105w: 1.015
+   f125w: 0.757
+   f140w: 0.609
+   f160w: 0.470
+effgain:  # effective gain = ccdgain * exptime
+   f435w: 75172.0
+   f606w: 1980.0
+   f814w: 148898.0
+   f105w: 16933.37
+   f125w: 6286.675000
+   f140w: 9338.0154475
+   f160w: 12573.350000
+skyrms_factor:
+   f435w: 1.459
+   f606w: 1.214
+   f814w: 1.722
+   f105w: 1.920
+   f125w: 1.759
+   f140w: 2.048
+   f160w: 2.261

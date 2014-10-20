@@ -1,0 +1,47 @@
+Help on module coords:
+
+NAME
+    coords - # H. Ferguson 7/12/05
+
+FILE
+    /devel/goods16/ferguson/junk/doc/doctmp/coords.py
+
+FUNCTIONS
+    degdms(ideg)
+        # H. Ferguson 7/12/05
+    
+    deghms(ideg)
+    
+    parsecoo(coostring, inhours=False)
+        Convert an coordinate string to decimal degrees. Accept
+        the input in any one of the following formats:
+               hhh:mm:ss.s    -- where hhh is either hours or degrees
+               hhh:mm.m       -- can include whitespace
+               hhh mm ss.s
+               hhh mm.m
+               ddd.ddddd  -- assumed to be in degrees, not hours
+               ###h##m##.###s -- with or without whitespace
+               ###d##m##.###s -- with or without whitespace
+        If inhours is True, multiply result by 15. (hours->deg)
+    
+    parsecoords(coostring)
+        Convert coordinate string to decimal degrees. Accept
+        the input in any one of the following formats:
+        hhh:mm:ss.s ddd:mm:ss.s  -- whitespace allowed, as long as consistent
+        hhh:mm:ss.s ddd:mm:ss.s  
+        hhh mm ss.s ddd mm ss.s
+        hhh:mm.m ddd:mm.m
+        hhh mm.m ddd mm.m
+        ddd.ddddd ddd.ddddd      -- ra,dec both assumed to be decimal deg
+        
+        also converts:
+        12h25m32.52s 25d32m25.2s -- with or without whitespace
+    
+    parsedec(decstring)
+    
+    parsera(rastring)
+    
+    to_sexagesimal(ra, dec)
+
+wrote coords.html
+numprint.py

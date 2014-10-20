@@ -1,0 +1,93 @@
+Help on module numprint:
+
+NAME
+    numprint
+
+FILE
+    /devel/goods16/ferguson/junk/doc/doctmp/numprint.py
+
+DESCRIPTION
+    Utilities for formatting and printing one-dimensional Numeric arrays.
+    Usage example:
+      
+    # >>> from Numeric import *
+    # >>> from numprint import *
+    >>> x = arange(5.)
+    >>> y = x*2.
+    >>> z = sqrt(x)
+    >>> l = format("%10.1f %10.2f",x,y)
+    >>> l.heading("%10s %10s" % ("x","2x"))
+    >>> print l
+             x         2x
+           0.0       0.00
+           1.0       2.00
+           2.0       4.00
+           3.0       6.00
+           4.0       8.00
+    
+    >>> l.addcols("%10.3f",z)
+    >>> l.addheading(" %10s" % "sqrt(x)")
+    >>> print l
+             x         2x    sqrt(x)
+           0.0       0.00      0.000
+           1.0       2.00      1.000
+           2.0       4.00      1.414
+           3.0       6.00      1.732
+           4.0       8.00      2.000
+
+CLASSES
+    format
+    
+    class format
+     |  Format a numeric array (Numeric or numarray) for printing
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, fmt, *args)
+     |      Specify the print format for a set of columns.
+     |      
+     |      Arguments:
+     |      fmt -- Standard format string
+     |      args -- one-dimensional array to print. Must be the same length.
+     |  
+     |  __repr__(self)
+     |      Display the output (returns a string).
+     |  
+     |  addcols(self, fmt, *args, **keywords)
+     |      Add more columns to the output.
+     |      
+     |      Arguments:
+     |      fmt -- Standard format string
+     |      args -- one-dimensional array to print. Must be the same length.
+     |      separator -- Keyword argument. specifies a field separator to use 
+     |           between these new columns an the previous ones. Default is ' '.
+     |  
+     |  addheading(self, heading)
+     |      Specify the heading for a set of columns.
+     |      
+     |      Arguments:
+     |      addheading -- Add some more column labels to an existing heading
+     |  
+     |  heading(self, heading)
+     |      Specify the heading for a set of columns.
+     |      
+     |      Arguments:
+     |      heading -- String to use as the heading (e.g. column labels).
+     |  
+     |  writeto(self, file, append=0)
+     |      Print the output to a file.
+
+FUNCTIONS
+    printcols(fmt, *args)
+
+DATA
+    __author__ = 'Henry C. Ferguson, STScI'
+    __version__ = '1.0'
+
+VERSION
+    1.0
+
+AUTHOR
+    Henry C. Ferguson, STScI
+
+wrote numprint.html

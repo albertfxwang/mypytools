@@ -1,0 +1,21 @@
+Help on module angsep:
+
+NAME
+    angsep
+
+FILE
+    /devel/goods16/ferguson/junk/doc/doctmp/angsep.py
+
+DESCRIPTION
+    # angsep.py
+    # Program to calculate the angular separation between two points
+    # whose coordinates are given in RA and Dec
+    # From angsep.py Written by Enno Middelberg 2001
+
+FUNCTIONS
+    angsep(ra1deg, dec1deg, ra2deg, dec2deg)
+        Determine separation in degrees between two celestial objects 
+        arguments are RA and Dec in decimal degrees.
+
+wrote angsep.html
+sextutils.py

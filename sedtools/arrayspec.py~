@@ -1,0 +1,57 @@
+
+# Subclasses for taking in spectra and spectral elements from arrays
+### Last updated by Kuang-Han Huang on 2/22/08 ###
+
+import math
+from my_pysynphot.spectrum import *
+from my_pysynphot import units
+from my_pysynphot import spectrum
+from numprint import *
+from numpy import *
+
+class ArraySourceSpectrum(TabularSourceSpectrum):
+    '''Class for a source spectrum that is read in from a wavelength and flux array
+    '''
+    def __init__(self, wave, flux, waveunits="angstrom", fluxunits="flam"):
+        self._wavetable = wave
+        self._fluxtable = flux
+        self.waveunits = units.Units(waveunits)
+        self.fluxunits = units.Units(fluxunits)
+        self.filename = None
+        self.ToInternal()
+
+
+class ArraySpectralElement(TabularSpectralElement):
+    def __init__(self, wave, throughput, waveunits="angstrom"):
+        self.name = None
+        self.wavetable  = wave
+        self.throughputtable = throughput
+        self.waveunints = units.Units(waveunits)
+        self.throughputunits = 'none'
+    
+
+def ABmag(spec,bandpass):
+    if bandpass == None:
+        bandpass = spectrum.UniformTransmission(1.)
+    abu = spectrum.UnitSpectrum(10.**(48.6/-2.5),fluxunits='fnu')
+    if bandpass.wave[-1] > spec.wave[-1]: # if bandpass wavelenth range is longer than spectrum    
+        n = searchsorted(bandpass.wave,spec.wave[-1])
+        merge = concatenate((spec.wave,bandpass.wave[n:]))
+        flux_standard = abu.compute(merge)
+    else:
+        flux_standard = abu.compute(spec.wave) # Sets the wavelength array of abu
+#   print spec.flux.min(),spec.flux.max()
+#   print spec.flux
+#   l = format("%10.1f %10.2e",spec.wave,spec.flux)
+#   print l
+#   print (spec*bandpass).integrate()
+#   print (flux_standard*bandpass).integrate()
+    numerator = (spec*bandpass).integrate()
+    denominator = (flux_standard*bandpass).integrate()
+    ratio = numerator/denominator
+    if ratio <= 0:
+        abmag = 999.
+    else:
+        abmag = -2.5*math.log10(ratio)
+    return abmag
+    

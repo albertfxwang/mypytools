@@ -1,0 +1,75 @@
+# 50 mas images
+cluster_name: "MACS0454"
+image_dir: "/Users/khuang/SurfsUp/MACS0454/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS0454/hst"
+merged_table: "hst_macs0454_60mas_merged.fits"
+sexfile: "f160w_macs0454_60mas.sex"
+filters: 
+   - 'f555w'
+   - 'f775w'  # really shallow
+   - 'f814w'
+   - 'f850lp' # really shallow
+   - 'f110w'
+   - 'f160w'
+detectband: 'f160w'
+scale: 0.06   # pixel scale in arcsec
+drz_images:
+   f555w:  'F555W_macs0454_60mas_cut_drz_geo.fits'
+   f775w:  'F775W_macs0454_60mas_cut_drz_geo.fits'
+   f814w:  'F814W_macs0454_60mas_cut_drz_geo.fits'
+   f850lp: 'F850LP_macs0454_60mas_cut_drz_geo.fits'
+   f110w:  'F110W_macs0454_60mas_cut_drz_geo.fits'
+   f160w:  'F160W_macs0454_60mas_cut_drz_geo.fits'
+wht_images: 
+   f555w:  'F555W_macs0454_60mas_cut_wht_geo.fits'
+   f775w:  'F775W_macs0454_60mas_cut_wht_geo.fits'
+   f814w:  'F814W_macs0454_60mas_cut_wht_geo.fits'
+   f850lp: 'F850LP_macs0454_60mas_cut_wht_geo.fits'
+   f110w:  'F110W_macs0454_60mas_cut_wht_geo.fits'
+   f160w:  'F160W_macs0454_60mas_cut_wht_geo.fits'
+flg_images:
+   f555w:  'F555W_macs0454_60mas_cut_flg_geo.fits'
+   f775w:  'F775W_macs0454_60mas_cut_flg_geo.fits'
+   f814w:  'F814W_macs0454_60mas_cut_flg_geo.fits'
+   f850lp: 'F850LP_macs0454_60mas_cut_flg_geo.fits'
+   f110w:  'F110W_macs0454_60mas_cut_flg_geo.fits'
+   f160w:  'F160W_macs0454_60mas_cut_flg_geo.fits'
+zeropoints:   # Do NOT correct for extinction! will do it in hst_pipeline.py
+   f555w:  25.718  
+   f775w:  25.662
+   f814w:  25.941
+   f850lp: 24.861
+   f110w:  26.812 
+   f160w:  25.936
+ext_coeff: 
+   f555w:  3.327   # this is an average of the coefficient of F475W and F606W...
+   f775w:  2.018
+   f814w:  1.822
+   f850lp: 1.473
+   f110w:  0.876 
+   f160w:  0.47
+ebmv_mean: 0.0344   # +/- 0.0009; for Abell 370
+# apcor:
+#    f435w: 0.
+#    f814w: 0.06
+#    f098m: 0.08
+#    f125w: 0.19
+#    f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f555w:  4410.0
+   f775w:  2440.0
+   f814w:  22876.0
+   f850lp: 2560.0
+   f110w:  6529.38
+   f160w:  6029.37
+skyrms_factor:  # scaling factor for flux error within r=0.3 arcsec aperture
+   # f555w: 1.612
+   # f814w: 2.015
+   # f110w: 1.613
+   # f160w: 1.620
+   f555w: 1.289
+   f775w: 1.601
+   f814w: 1.767
+   f850lp: 1.556
+   f110w: 2.195
+   f160w: 2.574

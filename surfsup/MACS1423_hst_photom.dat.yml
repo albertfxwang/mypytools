@@ -1,0 +1,108 @@
+cluster_name: "MACS1423"
+image_dir: "/Users/khuang/SurfsUp/MACS1423/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS1423/hst"
+merged_table: "hst_macs1423_65mas_merged.fits"
+sexfile: "wfc3ir_macs1423_65mas.sex"
+filters:
+   - "f435w" 
+   - "f475w"
+   - "f555w"
+   - "f606w"
+   - "f775w"
+   - "f814w"
+   - "f850lp"
+   - "f105w"
+   - "f110w"
+   - "f125w"
+   - "f140w"
+   - "f160w"
+   - "wfc3ir"
+detectband: "wfc3ir"
+scale: 0.065   # in arcsec
+drz_images:
+   f435w:  "hlsp_clash_hst_acs_macs1423_f435w_v1_drz.fits"
+   f475w:  "hlsp_clash_hst_acs_macs1423_f475w_v1_drz.fits"
+   f555w:  "hlsp_clash_hst_acs_macs1423_f555w_v1_drz.fits"
+   f606w:  "hlsp_clash_hst_acs_macs1423_f606w_v1_drz.fits"
+   f775w:  "hlsp_clash_hst_acs_macs1423_f775w_v1_drz.fits"
+   f814w:  "hlsp_clash_hst_acs_macs1423_f814w_v1_drz.fits"
+   f850lp: "hlsp_clash_hst_acs_macs1423_f850lp_v1_drz.fits"
+   f105w:  "hlsp_clash_hst_wfc3ir_macs1423_f105w_v1_drz.fits"
+   f110w:  "hlsp_clash_hst_wfc3ir_macs1423_f110w_v1_drz.fits"
+   f125w:  "hlsp_clash_hst_wfc3ir_macs1423_f125w_v1_drz.fits"
+   f140w:  "hlsp_clash_hst_wfc3ir_macs1423_f140w_v1_drz.fits"
+   f160w:  "hlsp_clash_hst_wfc3ir_macs1423_f160w_v1_drz.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_macs1423_total_v1_drz.fits"
+wht_images:
+   f435w:  "hlsp_clash_hst_acs_macs1423_f435w_v1_wht.fits"
+   f475w:  "hlsp_clash_hst_acs_macs1423_f475w_v1_wht.fits"
+   f555w:  "hlsp_clash_hst_acs_macs1423_f555w_v1_wht.fits"
+   f606w:  "hlsp_clash_hst_acs_macs1423_f606w_v1_wht.fits"
+   f775w:  "hlsp_clash_hst_acs_macs1423_f775w_v1_wht.fits"
+   f814w:  "hlsp_clash_hst_acs_macs1423_f814w_v1_wht.fits"
+   f850lp: "hlsp_clash_hst_acs_macs1423_f850lp_v1_wht.fits"
+   f105w:  "hlsp_clash_hst_wfc3ir_macs1423_f105w_v1_wht.fits"
+   f110w:  "hlsp_clash_hst_wfc3ir_macs1423_f110w_v1_wht.fits"
+   f125w:  "hlsp_clash_hst_wfc3ir_macs1423_f125w_v1_wht.fits"
+   f140w:  "hlsp_clash_hst_wfc3ir_macs1423_f140w_v1_wht.fits"
+   f160w:  "hlsp_clash_hst_wfc3ir_macs1423_f160w_v1_wht.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_macs1423_total_v1_wht.fits"
+flg_images:
+   f435w:  "hlsp_clash_hst_acs_macs1423_f435w_v1_flg.fits"
+   f475w:  "hlsp_clash_hst_acs_macs1423_f475w_v1_flg.fits"
+   f555w:  "hlsp_clash_hst_acs_macs1423_f555w_v1_flg.fits"
+   f606w:  "hlsp_clash_hst_acs_macs1423_f606w_v1_flg.fits"
+   f775w:  "hlsp_clash_hst_acs_macs1423_f775w_v1_flg.fits"
+   f814w:  "hlsp_clash_hst_acs_macs1423_f814w_v1_flg.fits"
+   f850lp: "hlsp_clash_hst_acs_macs1423_f850lp_v1_flg.fits"
+   f105w:  "hlsp_clash_hst_wfc3ir_macs1423_f105w_v1_flg.fits"
+   f110w:  "hlsp_clash_hst_wfc3ir_macs1423_f110w_v1_flg.fits"
+   f125w:  "hlsp_clash_hst_wfc3ir_macs1423_f125w_v1_flg.fits"
+   f140w:  "hlsp_clash_hst_wfc3ir_macs1423_f140w_v1_flg.fits"
+   f160w:  "hlsp_clash_hst_wfc3ir_macs1423_f160w_v1_flg.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_macs1423_total_v1_flg.fits"
+zeropoints:
+   # calculated from header keywords PHOTFLAM and PHOTPLAM
+   f435w:  25.665
+   f475w:  26.056
+   f555w:  25.727
+   f606w:  26.493
+   f775w:  25.662
+   f814w:  25.952
+   f850lp: 24.857
+   f105w:  26.269
+   f110w:  26.822
+   f125w:  26.230
+   f140w:  26.452
+   f160w:  25.946
+   wfc3ir: 26.000  # fiducial value
+ebmv_mean: 0.0272
+ext_coeff:
+   f435w:  4.117
+   f475w:  3.724
+   f555w:  3.242
+   f606w:  2.929
+   f775w:  2.018
+   f814w:  1.822
+   f850lp: 1.473
+   f105w:  1.015
+   f110w:  0.876
+   f125w:  0.757
+   f140w:  0.609
+   f160w:  0.470
+   wfc3ir: 0.
+effgain:  # effective gain = ccdgain * exptime
+   f435w: 8392.000
+   f475w: 8736.000
+   f555w: 9000.000
+   f606w: 8480.000
+   f775w: 8256.000
+   f814w: 27096.000
+   f850lp: 16928.000
+   f105w: 7036.675
+   f110w: 6286.675
+   f125w: 6286.675
+   f140w: 5779.340
+   f160w: 12573.350
+   wfc3ir: 1.0
+

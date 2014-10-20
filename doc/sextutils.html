@@ -1,0 +1,278 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module sextutils</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>sextutils</strong></big></big> (version 6.0)</font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/devel/goods16/ferguson/junk/doctmp/sextutils.py">/devel/goods16/ferguson/junk/doctmp/sextutils.py</a></font></td></tr></table>
+    <p><tt>#&nbsp;Utilities&nbsp;for&nbsp;parseing&nbsp;SExtractor&nbsp;files<br>
+#<br>
+#&nbsp;H.&nbsp;Ferguson&nbsp;-&nbsp;revised&nbsp;4/23/03&nbsp;to&nbsp;promote&nbsp;ints&nbsp;to&nbsp;floats&nbsp;if&nbsp;a&nbsp;value<br>
+#&nbsp;with&nbsp;a&nbsp;decimal&nbsp;point&nbsp;appears&nbsp;somewhere&nbsp;in&nbsp;the&nbsp;column&nbsp;originally&nbsp;thought<br>
+#&nbsp;to&nbsp;be&nbsp;integers<br>
+#&nbsp;<br>
+#&nbsp;v2.1&nbsp;-&nbsp;fails&nbsp;gracefully&nbsp;when&nbsp;the&nbsp;catalog&nbsp;has&nbsp;no&nbsp;sources<br>
+#&nbsp;v3.0&nbsp;-&nbsp;added&nbsp;gettypes&nbsp;to&nbsp;return&nbsp;column&nbsp;types<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;create&nbsp;new&nbsp;column&nbsp;names&nbsp;when&nbsp;they&nbsp;are&nbsp;not&nbsp;explictly&nbsp;in&nbsp;the&nbsp;header<br>
+#&nbsp;v4.0&nbsp;-&nbsp;added&nbsp;gettypes&nbsp;to&nbsp;return&nbsp;column&nbsp;types<br>
+#&nbsp;v4.1&nbsp;-&nbsp;uses&nbsp;numarray&nbsp;by&nbsp;default<br>
+#&nbsp;v4.2&nbsp;-&nbsp;delete&nbsp;attributed&nbsp;'l'&nbsp;(input&nbsp;lines&nbsp;from&nbsp;catalog)&nbsp;before&nbsp;returning<br>
+#&nbsp;v4.3&nbsp;-&nbsp;1/11/06Added&nbsp;less-offensive&nbsp;alias&nbsp;<a href="#se_catalog">se_catalog</a>()&nbsp;==&nbsp;<a href="#sextractor">sextractor</a>()<br>
+#&nbsp;v4.4h-&nbsp;1/21/06&nbsp;Fixed&nbsp;bug&nbsp;in&nbsp;creating&nbsp;extra&nbsp;column&nbsp;names&nbsp;when&nbsp;last&nbsp;is&nbsp;a&nbsp;vector<br>
+#&nbsp;v4.4&nbsp;-&nbsp;V.&nbsp;Laidler&nbsp;added&nbsp;new&nbsp;methods:<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__len__&nbsp;returns&nbsp;number&nbsp;of&nbsp;objects&nbsp;in&nbsp;catalog<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__iter__&nbsp;returns&nbsp;the&nbsp;index&nbsp;of&nbsp;the&nbsp;next&nbsp;row&nbsp;in&nbsp;the&nbsp;catalog<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line(self,i)&nbsp;returns&nbsp;a&nbsp;constructed&nbsp;string&nbsp;containing&nbsp;the&nbsp;ith&nbsp;line&nbsp;<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buildheader&nbsp;returns&nbsp;a&nbsp;constructed&nbsp;header&nbsp;from&nbsp;the&nbsp;hdict<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Added&nbsp;new&nbsp;attribute&nbsp;self.<strong>header</strong>:&nbsp;contains&nbsp;the&nbsp;header&nbsp;as&nbsp;read&nbsp;in<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;the&nbsp;catalog.<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lines&nbsp;that&nbsp;start&nbsp;with&nbsp;'#'&nbsp;but&nbsp;are&nbsp;not&nbsp;followed&nbsp;by&nbsp;an&nbsp;integer&nbsp;are<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;now&nbsp;assumed&nbsp;to&nbsp;be&nbsp;comment&nbsp;lines,&nbsp;which&nbsp;are&nbsp;added&nbsp;to&nbsp;the<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;header&nbsp;but&nbsp;otherwise&nbsp;skipped.<br>
+#&nbsp;v4.5&nbsp;-&nbsp;V.&nbsp;Laidler&nbsp;removed&nbsp;Numeric&nbsp;dependence<br>
+#&nbsp;v4.6&nbsp;-&nbsp;V.&nbsp;Laidler&nbsp;converted&nbsp;to&nbsp;numpy<br>
+#&nbsp;v5.0&nbsp;-&nbsp;7/5/07&nbsp;Numpy&nbsp;conversion<br>
+#&nbsp;v6.0&nbsp;-&nbsp;V.&nbsp;Laidler:&nbsp;added&nbsp;<a href="#rw_catalog">rw_catalog</a>&nbsp;class,&nbsp;reworked&nbsp;internals&nbsp;to&nbsp;avoid<br>
+#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;column&nbsp;name&nbsp;clashes</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#fffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+</td><td width="25%" valign=top><a href="string.html">string</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="__builtin__.html#object">__builtin__.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="sextutils.html#se_catalog">se_catalog</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="sextutils.html#rw_catalog">rw_catalog</a>
+</font></dt><dt><font face="helvetica, arial"><a href="sextutils.html#sextractor">sextractor</a>
+</font></dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="rw_catalog">class <strong>rw_catalog</strong></a>(<a href="sextutils.html#se_catalog">se_catalog</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Extend&nbsp;the&nbsp;<a href="#se_catalog">se_catalog</a>&nbsp;class&nbsp;to&nbsp;support&nbsp;adding&nbsp;new&nbsp;columns,<br>
+and&nbsp;writing&nbsp;out&nbsp;the&nbsp;new&nbsp;version.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="sextutils.html#rw_catalog">rw_catalog</a></dd>
+<dd><a href="sextutils.html#se_catalog">se_catalog</a></dd>
+<dd><a href="__builtin__.html#object">__builtin__.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="rw_catalog-__init__"><strong>__init__</strong></a>(self, fname)</dt></dl>
+
+<dl><dt><a name="rw_catalog-addcolumn"><strong>addcolumn</strong></a>(self, colname, coldata)</dt><dd><tt>coldata&nbsp;must&nbsp;be&nbsp;a&nbsp;1d&nbsp;numarray&nbsp;of&nbsp;the&nbsp;correct&nbsp;length</tt></dd></dl>
+
+<dl><dt><a name="rw_catalog-addemptycolumn"><strong>addemptycolumn</strong></a>(self, colname, coltype)</dt><dd><tt>Defines&nbsp;a&nbsp;new&nbsp;column&nbsp;&amp;&nbsp;updates&nbsp;all&nbsp;the&nbsp;bookkeeping,&nbsp;but<br>
+does&nbsp;not&nbsp;actually&nbsp;fill&nbsp;in&nbsp;the&nbsp;data.</tt></dd></dl>
+
+<dl><dt><a name="rw_catalog-line"><strong>line</strong></a>(self, rownum)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;line&nbsp;as&nbsp;to&nbsp;be&nbsp;printed&nbsp;out</tt></dd></dl>
+
+<dl><dt><a name="rw_catalog-printme"><strong>printme</strong></a>(self)</dt><dd><tt>Like&nbsp;writeto,&nbsp;but&nbsp;for&nbsp;sys.stdout</tt></dd></dl>
+
+<dl><dt><a name="rw_catalog-writeto"><strong>writeto</strong></a>(self, outname, clobber<font color="#909090">=False</font>)</dt></dl>
+
+<hr>
+Methods inherited from <a href="sextutils.html#se_catalog">se_catalog</a>:<br>
+<dl><dt><a name="rw_catalog-__iter__"><strong>__iter__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="rw_catalog-__len__"><strong>__len__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="rw_catalog-buildheader"><strong>buildheader</strong></a>(self)</dt><dd><tt>Reconstruct&nbsp;the&nbsp;header&nbsp;from&nbsp;the&nbsp;header&nbsp;dictionary.<br>
+This&nbsp;might&nbsp;be&nbsp;useful&nbsp;if&nbsp;only&nbsp;a&nbsp;few&nbsp;columns&nbsp;were&nbsp;selected<br>
+from&nbsp;the&nbsp;file;&nbsp;otherwise&nbsp;just&nbsp;use&nbsp;the&nbsp;'header'&nbsp;attribute.</tt></dd></dl>
+
+<dl><dt><a name="rw_catalog-getcol"><strong>getcol</strong></a>(self, col, offset<font color="#909090">=0</font>)</dt></dl>
+
+<dl><dt><a name="rw_catalog-getcols"><strong>getcols</strong></a>(self, *args)</dt></dl>
+
+<dl><dt><a name="rw_catalog-gettypes"><strong>gettypes</strong></a>(self)</dt></dl>
+
+<hr>
+Data descriptors inherited from <a href="sextutils.html#se_catalog">se_catalog</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="se_catalog">class <strong>se_catalog</strong></a>(<a href="__builtin__.html#object">__builtin__.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Read&nbsp;a&nbsp;SExtractor-style&nbsp;catalog.&nbsp;<br>
+Usage:&nbsp;c=<a href="#se_catalog">se_catalog</a>(catalog,readfile=True,preserve_case=False)<br>
+Will&nbsp;read&nbsp;the&nbsp;catalog&nbsp;and&nbsp;return&nbsp;an&nbsp;<a href="__builtin__.html#object">object</a>&nbsp;c,&nbsp;whose&nbsp;attributes&nbsp;are&nbsp;<br>
+arrays&nbsp;containing&nbsp;the&nbsp;data.&nbsp;For&nbsp;example,&nbsp;c.mag_auto&nbsp;contains&nbsp;the&nbsp;<br>
+mag_auto&nbsp;values.<br>
+Arguments:<br>
+catalog&nbsp;--&nbsp;The&nbsp;input&nbsp;SExtractor&nbsp;catalog.&nbsp;<br>
+readfile&nbsp;--&nbsp;True&nbsp;means&nbsp;read&nbsp;the&nbsp;data.&nbsp;False&nbsp;means&nbsp;return&nbsp;the&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<a href="__builtin__.html#object">object</a>&nbsp;without&nbsp;reading&nbsp;the&nbsp;data.&nbsp;The&nbsp;lines&nbsp;from&nbsp;the&nbsp;catalog<br>
+&nbsp;&nbsp;&nbsp;are&nbsp;returned&nbsp;as&nbsp;a&nbsp;list&nbsp;of&nbsp;ascii&nbsp;strings&nbsp;c.l.&nbsp;Useful&nbsp;if&nbsp;you&nbsp;want<br>
+&nbsp;&nbsp;&nbsp;to&nbsp;do&nbsp;some&nbsp;special&nbsp;parsing&nbsp;of&nbsp;some&nbsp;sort.&nbsp;<br>
+preserve_case&nbsp;--&nbsp;default&nbsp;(False)&nbsp;converts&nbsp;column&nbsp;names&nbsp;to&nbsp;lower&nbsp;case<br>
+&nbsp;<br>
+The&nbsp;input&nbsp;catalog&nbsp;MUST&nbsp;have&nbsp;a&nbsp;header&nbsp;with&nbsp;the&nbsp;SExtractor&nbsp;format:<br>
+&nbsp;&nbsp;&nbsp;#&nbsp;1&nbsp;ID&nbsp;comment<br>
+&nbsp;&nbsp;&nbsp;#&nbsp;2&nbsp;ALPHA_J200&nbsp;another&nbsp;comment<br>
+That&nbsp;is,&nbsp;first&nbsp;column&nbsp;is&nbsp;the&nbsp;comment&nbsp;symbol&nbsp;#,&nbsp;second&nbsp;column&nbsp;is<br>
+the&nbsp;column&nbsp;number,&nbsp;third&nbsp;column&nbsp;is&nbsp;the&nbsp;column&nbsp;name,&nbsp;and&nbsp;the&nbsp;rest<br>
+of&nbsp;the&nbsp;line&nbsp;is&nbsp;a&nbsp;comment.&nbsp;SExtractor&nbsp;allows&nbsp;"vectors"&nbsp;to&nbsp;be&nbsp;identified<br>
+only&nbsp;by&nbsp;the&nbsp;first&nbsp;column...e.g.<br>
+&nbsp;&nbsp;&nbsp;#&nbsp;12&nbsp;FLUX_APER<br>
+&nbsp;&nbsp;&nbsp;#&nbsp;20&nbsp;FLUXERR_APER&nbsp;<br>
+the&nbsp;missing&nbsp;columns&nbsp;are&nbsp;all&nbsp;aperture&nbsp;fluxes&nbsp;through&nbsp;different<br>
+apertures.&nbsp;These&nbsp;will&nbsp;be&nbsp;read&nbsp;into&nbsp;attributes:<br>
+&nbsp;&nbsp;&nbsp;c.flux_aper&nbsp;&nbsp;&nbsp;#&nbsp;The&nbsp;first&nbsp;one<br>
+&nbsp;&nbsp;&nbsp;c.flux_aper_1&nbsp;#&nbsp;the&nbsp;second&nbsp;one,&nbsp;and&nbsp;so&nbsp;on<br>
+&nbsp;<br>
+The&nbsp;case&nbsp;of&nbsp;aperture&nbsp;radii&nbsp;is&nbsp;a&nbsp;bit&nbsp;nasty,&nbsp;since&nbsp;these&nbsp;only<br>
+appear&nbsp;in&nbsp;the&nbsp;SExtractor&nbsp;configuration&nbsp;file.&nbsp;Use&nbsp;parseconfig()<br>
+to&nbsp;read&nbsp;that&nbsp;file.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="se_catalog-__init__"><strong>__init__</strong></a>(self, cfile, readfile<font color="#909090">=True</font>, preserve_case<font color="#909090">=False</font>)</dt></dl>
+
+<dl><dt><a name="se_catalog-__iter__"><strong>__iter__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="se_catalog-__len__"><strong>__len__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="se_catalog-buildheader"><strong>buildheader</strong></a>(self)</dt><dd><tt>Reconstruct&nbsp;the&nbsp;header&nbsp;from&nbsp;the&nbsp;header&nbsp;dictionary.<br>
+This&nbsp;might&nbsp;be&nbsp;useful&nbsp;if&nbsp;only&nbsp;a&nbsp;few&nbsp;columns&nbsp;were&nbsp;selected<br>
+from&nbsp;the&nbsp;file;&nbsp;otherwise&nbsp;just&nbsp;use&nbsp;the&nbsp;'header'&nbsp;attribute.</tt></dd></dl>
+
+<dl><dt><a name="se_catalog-getcol"><strong>getcol</strong></a>(self, col, offset<font color="#909090">=0</font>)</dt></dl>
+
+<dl><dt><a name="se_catalog-getcols"><strong>getcols</strong></a>(self, *args)</dt></dl>
+
+<dl><dt><a name="se_catalog-gettypes"><strong>gettypes</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="se_catalog-line"><strong>line</strong></a>(self, i)</dt><dd><tt>Returns&nbsp;an&nbsp;assembled&nbsp;line&nbsp;of&nbsp;this&nbsp;catalog&nbsp;suitable&nbsp;for&nbsp;writing.<br>
+Except&nbsp;it&nbsp;doesn't&nbsp;really,&nbsp;if&nbsp;we&nbsp;modified&nbsp;the&nbsp;individual&nbsp;columns...</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="sextractor">class <strong>sextractor</strong></a>(<a href="sextutils.html#se_catalog">se_catalog</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Read&nbsp;SExtractor&nbsp;catalog...just&nbsp;an&nbsp;alias&nbsp;for&nbsp;<a href="#se_catalog">se_catalog</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="sextutils.html#sextractor">sextractor</a></dd>
+<dd><a href="sextutils.html#se_catalog">se_catalog</a></dd>
+<dd><a href="__builtin__.html#object">__builtin__.object</a></dd>
+</dl>
+<hr>
+Methods inherited from <a href="sextutils.html#se_catalog">se_catalog</a>:<br>
+<dl><dt><a name="sextractor-__init__"><strong>__init__</strong></a>(self, cfile, readfile<font color="#909090">=True</font>, preserve_case<font color="#909090">=False</font>)</dt></dl>
+
+<dl><dt><a name="sextractor-__iter__"><strong>__iter__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="sextractor-__len__"><strong>__len__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="sextractor-buildheader"><strong>buildheader</strong></a>(self)</dt><dd><tt>Reconstruct&nbsp;the&nbsp;header&nbsp;from&nbsp;the&nbsp;header&nbsp;dictionary.<br>
+This&nbsp;might&nbsp;be&nbsp;useful&nbsp;if&nbsp;only&nbsp;a&nbsp;few&nbsp;columns&nbsp;were&nbsp;selected<br>
+from&nbsp;the&nbsp;file;&nbsp;otherwise&nbsp;just&nbsp;use&nbsp;the&nbsp;'header'&nbsp;attribute.</tt></dd></dl>
+
+<dl><dt><a name="sextractor-getcol"><strong>getcol</strong></a>(self, col, offset<font color="#909090">=0</font>)</dt></dl>
+
+<dl><dt><a name="sextractor-getcols"><strong>getcols</strong></a>(self, *args)</dt></dl>
+
+<dl><dt><a name="sextractor-gettypes"><strong>gettypes</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="sextractor-line"><strong>line</strong></a>(self, i)</dt><dd><tt>Returns&nbsp;an&nbsp;assembled&nbsp;line&nbsp;of&nbsp;this&nbsp;catalog&nbsp;suitable&nbsp;for&nbsp;writing.<br>
+Except&nbsp;it&nbsp;doesn't&nbsp;really,&nbsp;if&nbsp;we&nbsp;modified&nbsp;the&nbsp;individual&nbsp;columns...</tt></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="sextutils.html#se_catalog">se_catalog</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-getcol"><strong>getcol</strong></a>(col, lines)</dt><dd><tt>Get&nbsp;a&nbsp;column&nbsp;from&nbsp;a&nbsp;SExtractor&nbsp;catalog.&nbsp;Determine&nbsp;the&nbsp;type<br>
+(integer,&nbsp;float,&nbsp;string)&nbsp;and&nbsp;return&nbsp;either&nbsp;an&nbsp;array&nbsp;of&nbsp;that<br>
+type&nbsp;(Int32,&nbsp;Float64)&nbsp;or&nbsp;a&nbsp;list&nbsp;of&nbsp;strings</tt></dd></dl>
+ <dl><dt><a name="-getcols"><strong>getcols</strong></a>(d, l, *args)</dt><dd><tt>Get&nbsp;multiple&nbsp;columns&nbsp;from&nbsp;SExtractor&nbsp;list&nbsp;using&nbsp;<a href="#-getcol">getcol</a>()</tt></dd></dl>
+ <dl><dt><a name="-getcolvalues"><strong>getcolvalues</strong></a>(col, coltype, colentries)</dt><dd><tt>Get&nbsp;a&nbsp;column&nbsp;from&nbsp;a&nbsp;SExtractor&nbsp;catalog.&nbsp;Determine&nbsp;the&nbsp;type<br>
+(integer,&nbsp;float,&nbsp;string)&nbsp;and&nbsp;return&nbsp;either&nbsp;an&nbsp;array&nbsp;of&nbsp;that<br>
+type&nbsp;(Int32,&nbsp;Float64)&nbsp;or&nbsp;a&nbsp;list&nbsp;of&nbsp;strings</tt></dd></dl>
+ <dl><dt><a name="-getfloats"><strong>getfloats</strong></a>(col, lines, values)</dt></dl>
+ <dl><dt><a name="-getints"><strong>getints</strong></a>(col, lines, values)</dt></dl>
+ <dl><dt><a name="-getstrings"><strong>getstrings</strong></a>(col, lines, values)</dt></dl>
+ <dl><dt><a name="-initcat"><strong>initcat</strong></a>(catfile, preserve_case<font color="#909090">=False</font>)</dt><dd><tt>parseheader&nbsp;--&nbsp;reads&nbsp;the&nbsp;header&nbsp;of&nbsp;a&nbsp;SExtractor&nbsp;catalog&nbsp;file&nbsp;and&nbsp;<br>
+returns&nbsp;a&nbsp;dictionary&nbsp;of&nbsp;parameter&nbsp;names&nbsp;and&nbsp;column&nbsp;numbers.<br>
+Also&nbsp;returns&nbsp;a&nbsp;list&nbsp;of&nbsp;lines&nbsp;containing&nbsp;the&nbsp;data.</tt></dd></dl>
+ <dl><dt><a name="-invert_dict"><strong>invert_dict</strong></a>(d)</dt><dd><tt>Generate&nbsp;a&nbsp;new&nbsp;dictionary&nbsp;with&nbsp;the&nbsp;key/value&nbsp;relationship&nbsp;inverted</tt></dd></dl>
+ <dl><dt><a name="-parseconfig_se"><strong>parseconfig_se</strong></a>(cfile)</dt><dd><tt>parseconfig&nbsp;--&nbsp;read&nbsp;a&nbsp;SExtractor&nbsp;.sex&nbsp;file&nbsp;and&nbsp;return&nbsp;a&nbsp;dictionary<br>
+of&nbsp;options&nbsp;&amp;&nbsp;values.&nbsp;Comments&nbsp;are&nbsp;ignored.</tt></dd></dl>
+ <dl><dt><a name="-writeheader"><strong>writeheader</strong></a>(fh, colnames)</dt><dd><tt>Write&nbsp;an&nbsp;SExtractor-style&nbsp;header&nbsp;to&nbsp;an&nbsp;open&nbsp;file&nbsp;handle.<br>
+&nbsp;<br>
+@param&nbsp;fh:&nbsp;file&nbsp;handle<br>
+@type&nbsp;fh:&nbsp;file<br>
+&nbsp;<br>
+@param&nbsp;colnames:&nbsp;list&nbsp;of&nbsp;column&nbsp;names<br>
+@type&nbsp;colnames:&nbsp;list<br>
+&nbsp;<br>
+@todo:&nbsp;add&nbsp;space&nbsp;checking&nbsp;to&nbsp;colnames<br>
+@todo:&nbsp;permit&nbsp;passing&nbsp;a&nbsp;filename?<br>
+@todo:&nbsp;handle&nbsp;comments</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>__version__</strong> = '6.0'</td></tr></table>
+</body></html>

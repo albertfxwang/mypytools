@@ -1,0 +1,41 @@
+ASCII files of the substantive tabular data referenced in the paper:
+
+The UKIRT Infrared Deep Sky Survey ZYJHK Photometric System: Passbands
+  and Synthetic Colours
+Authors: Paul C. Hewett (1), Stephen J. Warren (2), Sandy K. Leggett (3) and
+  Simon T. Hodgkin (1) ((1) Institute of Astronomy, Cambridge, (2) Imperial
+  College, London, (3) JAC, Hawaii)
+  
+  MNRAS 2006, in press, (astro-ph/0601592)
+  
+Files are named according to the Table number specified in the paper.
+Each file consists of a sequence of "header" records, beginning with a
+"#" character, followed by records containing the numerical values from
+the table. 
+
+Table02_online.dat
+Table03_online.dat
+Table04_online.dat
+Table05_online.dat
+Table06_online.dat
+Table08_online.dat
+Table09_online.dat
+Table10_online.dat
+Table11_online.dat
+Table12_online.dat
+Table13_online.dat
+Table14_online.dat
+Table16_online.dat
+Table17_online.dat
+Table18_online.dat
+Table19_online.dat
+Table20_online.dat
+Table21_online.dat
+Table22_online.dat
+Table23_online.dat
+Table24_online.dat
+Table25_online.dat
+Table26_online.dat
+Table27_online.dat
+
+Paul Hewett (2006 January 26)

@@ -1,0 +1,111 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module numprint</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>numprint</strong></big></big> (version 1.0)</font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/devel/goods16/ferguson/junk/doctmp/numprint.py">/devel/goods16/ferguson/junk/doctmp/numprint.py</a></font></td></tr></table>
+    <p><tt>Utilities&nbsp;for&nbsp;formatting&nbsp;and&nbsp;printing&nbsp;one-dimensional&nbsp;Numeric&nbsp;arrays.<br>
+Usage&nbsp;example:<br>
+&nbsp;&nbsp;<br>
+#&nbsp;&gt;&gt;&gt;&nbsp;from&nbsp;Numeric&nbsp;import&nbsp;*<br>
+#&nbsp;&gt;&gt;&gt;&nbsp;from&nbsp;numprint&nbsp;import&nbsp;*<br>
+&gt;&gt;&gt;&nbsp;x&nbsp;=&nbsp;arange(5.)<br>
+&gt;&gt;&gt;&nbsp;y&nbsp;=&nbsp;x*2.<br>
+&gt;&gt;&gt;&nbsp;z&nbsp;=&nbsp;sqrt(x)<br>
+&gt;&gt;&gt;&nbsp;l&nbsp;=&nbsp;<a href="#format">format</a>("%10.1f&nbsp;%10.2f",x,y)<br>
+&gt;&gt;&gt;&nbsp;l.heading("%10s&nbsp;%10s"&nbsp;%&nbsp;("x","2x"))<br>
+&gt;&gt;&gt;&nbsp;print&nbsp;l<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2x<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6.00<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8.00<br>
+&nbsp;<br>
+&gt;&gt;&gt;&nbsp;l.addcols("%10.3f",z)<br>
+&gt;&gt;&gt;&nbsp;l.addheading("&nbsp;%10s"&nbsp;%&nbsp;"sqrt(x)")<br>
+&gt;&gt;&gt;&nbsp;print&nbsp;l<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2x&nbsp;&nbsp;&nbsp;&nbsp;sqrt(x)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.000<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.000<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.414<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.732<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.000</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="numprint.html#format">format</a>
+</font></dt></dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="format">class <strong>format</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Format&nbsp;a&nbsp;numeric&nbsp;array&nbsp;(Numeric&nbsp;or&nbsp;numarray)&nbsp;for&nbsp;printing<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="format-__init__"><strong>__init__</strong></a>(self, fmt, *args)</dt><dd><tt>Specify&nbsp;the&nbsp;print&nbsp;<a href="#format">format</a>&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;columns.<br>
+&nbsp;<br>
+Arguments:<br>
+fmt&nbsp;--&nbsp;Standard&nbsp;<a href="#format">format</a>&nbsp;string<br>
+args&nbsp;--&nbsp;one-dimensional&nbsp;array&nbsp;to&nbsp;print.&nbsp;Must&nbsp;be&nbsp;the&nbsp;same&nbsp;length.</tt></dd></dl>
+
+<dl><dt><a name="format-__repr__"><strong>__repr__</strong></a>(self)</dt><dd><tt>Display&nbsp;the&nbsp;output&nbsp;(returns&nbsp;a&nbsp;string).</tt></dd></dl>
+
+<dl><dt><a name="format-addcols"><strong>addcols</strong></a>(self, fmt, *args, **keywords)</dt><dd><tt>Add&nbsp;more&nbsp;columns&nbsp;to&nbsp;the&nbsp;output.<br>
+&nbsp;<br>
+Arguments:<br>
+fmt&nbsp;--&nbsp;Standard&nbsp;<a href="#format">format</a>&nbsp;string<br>
+args&nbsp;--&nbsp;one-dimensional&nbsp;array&nbsp;to&nbsp;print.&nbsp;Must&nbsp;be&nbsp;the&nbsp;same&nbsp;length.<br>
+separator&nbsp;--&nbsp;Keyword&nbsp;argument.&nbsp;specifies&nbsp;a&nbsp;field&nbsp;separator&nbsp;to&nbsp;use&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;between&nbsp;these&nbsp;new&nbsp;columns&nbsp;an&nbsp;the&nbsp;previous&nbsp;ones.&nbsp;Default&nbsp;is&nbsp;'&nbsp;'.</tt></dd></dl>
+
+<dl><dt><a name="format-addheading"><strong>addheading</strong></a>(self, heading)</dt><dd><tt>Specify&nbsp;the&nbsp;heading&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;columns.<br>
+&nbsp;<br>
+Arguments:<br>
+addheading&nbsp;--&nbsp;Add&nbsp;some&nbsp;more&nbsp;column&nbsp;labels&nbsp;to&nbsp;an&nbsp;existing&nbsp;heading</tt></dd></dl>
+
+<dl><dt><a name="format-heading"><strong>heading</strong></a>(self, heading)</dt><dd><tt>Specify&nbsp;the&nbsp;heading&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;columns.<br>
+&nbsp;<br>
+Arguments:<br>
+heading&nbsp;--&nbsp;String&nbsp;to&nbsp;use&nbsp;as&nbsp;the&nbsp;heading&nbsp;(e.g.&nbsp;column&nbsp;labels).</tt></dd></dl>
+
+<dl><dt><a name="format-writeto"><strong>writeto</strong></a>(self, file, append<font color="#909090">=0</font>)</dt><dd><tt>Print&nbsp;the&nbsp;output&nbsp;to&nbsp;a&nbsp;file.</tt></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-printcols"><strong>printcols</strong></a>(fmt, *args)</dt></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>__author__</strong> = 'Henry C. Ferguson, STScI'<br>
+<strong>__version__</strong> = '1.0'</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#7799ee">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Author</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#7799ee"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Henry&nbsp;C.&nbsp;Ferguson,&nbsp;STScI</td></tr></table>
+</body></html>

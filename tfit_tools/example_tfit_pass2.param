@@ -1,0 +1,245 @@
+#New, combined parameter file for TFIT pipeline
+#This is an annotated version of the parameter file; see
+#the TFIT User's Guide for more detail.
+
+# The sample filenames given in this file are very generic.
+# It is STRONGLY recommended that you give meaningful
+# filenames to all output files and directories, indicating
+# the dataset(s) from which they come.
+#..................................................................
+#Params relating to the hi-res image set
+hiresfile	/Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/hst/f160w_60mas_cut_sci_bgcorr.fits
+hirescat	   /Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/hst/f160w_bullet_60mas_131029_HID3_tfit.cat
+hiresseg	   /Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/hst/f160w_60mas_cut_seg.fits
+# if cutouts are already made, no need to specify hires image here?
+# if so, these parameters don't matter anymore
+
+# These are input parameters for the cutout stage. The
+# hiresfile is the image from which the cutouts will be made,
+# using the catalog and segmentation information in the other
+# two files.
+
+hicatcolnames	 NUMBER, X_IMAGE, Y_IMAGE, XMIN_IMAGE, YMIN_IMAGE, XMAX_IMAGE, YMAX_IMAGE, BACKGROUND, FLUX_ISO 
+
+#This is the default set of column names from the input catalog,
+#used if the value of "hicatcolnames" is None.
+#If you need to specify a different set of names, be sure that
+#the order corresponds to the default set. All names must be
+#specified on the same line. Alternatively, you can provide
+#a filename as the value here, with the actual column names
+#in the file, all on the same line.
+#..................................................................
+#..................................................................
+
+#Params relating the two images
+relscale	10
+
+#This is the relative pixel scale between the two images.
+#For example if the hires images has a pixel scale of 0.1
+#arcsec/pixel, and the lores image has a pixel scale of 0.5
+#arcsec/pixel, the value of relscale should be 5.
+#..................................................................
+#..................................................................
+
+#Params relating to the lo-res image set
+loresfile	/Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/irac/ch1/ch1_pf0.01_cut_drz_med_HID3_bgcorr.fits
+bgconstant  0
+
+#TFIT can subtract a global background constant from the 
+#lores image before fitting. We do not recommend this; instead
+#it is recommended that you background-correct the lores
+#image as perfectly as possible before fitting.
+
+loreserr	   /Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/irac/pixfrac0.01/cut1/ch1_pf0.01_cut_unc_DNS_scaled_src.fits
+errtype     rms
+rmsconstant 1
+
+#TFIT is designed to work with an RMS map as the error map,
+#but it will also accept a weight map, or a single constant
+#value of the RMS from which an RMS map is generated. The
+#errtype specifies which kind of error image is provided.
+#For best results, use a source-weighted RMS map, to prevent
+#the bright objects from dominating the fit.
+
+loresflag   /Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/irac/ch1/ch1_pf0.01_cut_flg.fits
+maxflag     1             #make it a mask
+
+#The flag map is used at several points in the pipeline to
+#avoid constructing templates, and fitting pixels, that contain
+#bad data. At present this is implemented as a maximum value:
+#templates containing at least one pixel with a flag map value
+#greater than maxflag will not be created. Eventually we may
+#change this to work as a mask.
+#..................................................................
+#..................................................................
+
+#Params relating to the transfer kernel
+multikernels	true
+psffile     /Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/irac/pixfrac0.01/ch1_bullet_pf0.01_psf_60mas_sinc_mag1.2.fits
+psflookup	bullet_ch1_dancecard_pass1.txt
+posframe    lores
+# psflookup is output of dance stage, if multikernels is true;
+
+
+#The transfer kernel must be a FITS image on the same
+#pixel scale as the high res image. It should contain
+#a centered, normalized image T such that
+#         hires PSF convolved with T = lores PSF.
+
+#TFIT supports the use of multiple kernels to accommodate
+#a spatially varying PSF. To use this option, set the
+#multikernels value to true, and provide a psflookup file
+#that divides the lores image into rectangular zones, 
+#specified as pixel ranges, and provides a transfer kernel
+#filename for each zone. Any objects which fall in a zone
+#not included in the lookup file will use the transfer kernel
+#specified as psffile.
+#..................................................................
+#..................................................................
+
+#Params relating to the cutout stage
+cutoutcat	bullet_ch1_cutout_HID3.cat
+cutoutdir   allcut_ch1_HID3 		# give it the directory name that contains all the cutouts
+normalize	true
+
+#cutoutcat should be the filename containing only those columns
+#from the hirescat used by TFIT. 
+#cutoutdir is the directory containing the cutouts.
+#These are output parameters if you start from the cutout stage;
+#they are input parameters if you start from the convolve stage.
+#The normalize parameter determines whether the cutouts will be
+#normalized or not; it is normally set to true, so that the
+#final output catalog will contain fluxes, rather than colors.
+#..................................................................
+#..................................................................
+
+#Params relating to the convolve stage
+templatedir	templates_pass2
+
+#This is the directory containing the templates.
+#It is an output parameter for the convolve stage,
+#and an input parameter for all subsequent stages.
+#..................................................................
+#..................................................................
+
+#Params relating to the transform stage
+lrfcat		bullet_ch1_pass1.cat_lrf
+
+#This is the "cutoutcat" file, transformed into the
+#pixel reference frame of the lores image. It is an output
+#parameter for the transform stage, and an input parameter
+#for the cull stage.
+#..................................................................
+#..................................................................
+
+#Params relating to the cull stage
+templatecat	bullet_ch1_pass2.cat_lrf_culled
+
+#This is the "lrfcat" file, modified to exclude or modify objects
+#that were culled because their templates fell entirely or
+#partially outside the bounds of the lores image. It is an
+#output parameter for the cull stage, and an input parameter
+#for all subsequent stages.
+#..................................................................
+#..................................................................
+
+#Params relating to the fitting stage
+#The fitting stage has the most complex set of parameters.
+
+#...First filenames
+tfitpars	   tpipe_tfit_bullet_pass2.param
+tfitcat		bullet_ch1_tfit_pass2.cat
+tfitcell	   bullet_ch1_tfit_pass2.cell
+tfitcovar	bullet_ch1_tfit_pass2.covar
+
+#These are all output parameters. The "tfitpars" file
+#specifies the name of the special parameter file for the fitting
+#stage that will be generated from the parameters in this file.
+#The others are filenames for the output catalog, cell, and 
+#covariance files, respectively. These should be named for the
+#2nd pass.
+
+#...Then control parameters
+cell_xdim	100
+cell_ydim	100
+cell_overlap	15
+
+#These are the most important control parameters. 
+#cell_xdim and cell_ydim specify the original size of the cell, 
+#in lores pixels. It should be large enough to contain 2-3 lores 
+#PSFs. The cell will grow to avoid chopping off partial templates, 
+#so this is a minimum size.
+#The cell_overlap is also specified in lores pixels.
+
+#..including many that don't change too often
+dithercell	true
+cellmask	true
+maskfloor   	1e-9	
+fitbackground	false
+writecovar	true
+
+#These are control parameters.
+#  dithercell=true dithers the pattern of overlapping cells over
+#                  the lores image, to avoid corner problems.
+#  cellmask=true   uses a mask to exclude pixels from the fit which
+#                  do not contain a value of at least "maskfloor" in
+#                  at least one template. This is necessary because
+#                  of the cell growth.
+#  maskfloor=1e9   should be set to a value at which it's okay to clip
+#                  the templates.
+#  fitbackground=false  does not fit the background in each cell. This
+#                  is necessary because of the cell growth.
+#  writecovar=true writes the covariance information out to the covar
+#                  file. 
+#..................................................................
+#..................................................................
+
+#Params pertaining to diagnostics
+modelfile	bullet_ch1_collage_pass2.fits
+
+#This is an output parameter. It will contain the collage made by 
+#multiplying each template by its best flux and dropping it into the
+#right place. An additional diagnostic file will be created: it will
+#contain the difference image (loresimage - modelfile). Its filename
+#will be created by prepending "resid_" to the modelfile.
+#..................................................................
+#..................................................................
+
+#Params pertaining to the dance
+dzonesize	100
+maxshift	1.0
+ddiagfile	ddiags.txt
+dlogfile	dlog.txt
+
+#The first two are control parameters.
+# dzonesize specifies the size of the rectangular zones over which a
+# shift will be calculated. It should be comparable to the size over
+# which the misregistration is roughly constant; but, it must be
+# large enough to contain enough objects to provide a good signal
+# to the crosscorrelation.
+#
+# maxshift specifies the maximum size of the x/y shift, in lores
+# pixels, which is considered to be valid. Any shift larger than this
+# is considered spurious and dropped from the final results, and 
+# replaced by an interpolated value from the surrounding zones.
+#
+# ddiagfile is an output parameter for the dance stage, and an input
+# parameter for the plotdance stage.
+# dlogfile is an output parameter; it simply contains the output from
+# the crosscorrelation process.
+#..................................................................
+#..................................................................
+#
+#Param defining the pipeline
+
+order	convolve, cull, fit, diags
+nproc   4
+
+#This is a typical secondpass run, using the multikernel option to
+#regenerate templates using spatially varying transfer kernels 
+#generated by the dance, and omitting the transform stage because it's
+#already been performed.
+
+#order     convolve, transform, cull, fit, diags, dance, plotdance
+
+#This is a typical GOODS ACS-to-lores firstpass run, using previously #generated cutouts.

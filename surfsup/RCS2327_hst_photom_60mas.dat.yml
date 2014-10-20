@@ -1,0 +1,68 @@
+cluster_name: "rcs2327"
+image_dir: "/Users/khuang/SurfsUp/RCS2327/hst/60mas"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/RCS2327/hst"
+merged_table: "hst_rcs2327_60mas_merged.fits"
+sexfile: "f160w_rcs2327_60mas.sex"
+filters: ['f435w', 'f814w', 'f098m', 'f125w', 'f160w']
+# filters: ['f160w']
+detectband: 'f160w'
+scale: 0.06   # pixel scale in arcsec
+drz_images:  # use PSF-matched images (to F160W) for bands bluer than F160W
+   f435w: 'f435w_rcs2327_cut_60mas_drz_geo.fits'
+   f814w: 'f814w_rcs2327_cut_60mas_drz_geo.fits'
+   f098m: 'f098m_rcs2327_cut_60mas_drz_geo.fits'
+   f125w: 'f125w_rcs2327_cut_60mas_drz_geo.fits'
+   f160w: 'f160w_rcs2327_cut_60mas_drz_geo.fits'
+wht_images: 
+   f435w: 'f435w_rcs2327_cut_60mas_wht_geo.fits'
+   f814w: 'f814w_rcs2327_cut_60mas_wht_geo.fits'
+   f098m: 'f098m_rcs2327_cut_60mas_wht_geo.fits'
+   f125w: 'f125w_rcs2327_cut_60mas_wht_geo.fits'
+   f160w: 'f160w_rcs2327_cut_60mas_wht_geo.fits'
+wht_type: "MAP_WEIGHT"
+flg_images:
+   f435w: 'f435w_rcs2327_cut_60mas_flg_geo.fits'
+   f814w: 'f814w_rcs2327_cut_60mas_flg_geo.fits'
+   f098m: 'f098m_rcs2327_cut_60mas_flg_geo.fits'
+   f125w: 'f125w_rcs2327_cut_60mas_flg_geo.fits'
+   f160w: 'f160w_rcs2327_cut_60mas_flg_geo.fits'
+zeropoints:   # within an infinite aperture; same as calculated from PHOTFLAM and PHOTPLAM
+   # do NOT correct for extinction here... will be corrected in hst_pipeline.py 
+   f435w: 25.641
+   f814w: 25.937
+   f098m: 25.657
+   f125w: 26.220
+   f160w: 25.936
+ext_coeff: 
+   f435w: 4.117
+   f814w: 1.822
+   f098m: 1.015
+   f125w: 0.757 
+   f160w: 0.47
+ebmv_mean: 0.0474   # +/- 0.0009; for RCS2-2327-0204
+apcor:
+   f435w: 0.
+   f814w: 0.06
+   f098m: 0.08
+   f125w: 0.19
+   f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f435w: 8416.0
+   f814w: 11252.0
+   f098m: 17088.1
+   f125w: 16588.1
+   f160w: 23117.5
+# below are SExtractor parameters for the HOT/COLD modes
+detect_minarea: [8.0, 10.0]
+detect_thresh:  [1.5, 6.0]
+clean_param:    [1.0, 0.5]
+skyrms_factor:  # scaling factor for flux error within 0.4 arcsec aperture
+# If one decides to scale the RMS images directly, use 1.0 for all filters below.
+   # within r=0.3 arcsec apertures (d=0.6 arcsec)
+   f435w: 1.277
+   f814w: 1.397
+   f098m: 2.353
+   f125w: 2.273
+   f160w: 2.423
+# apercol: 'APER_1'  
+# the aperture suffix that has the right aperture size for flux errors
