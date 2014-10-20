@@ -1,0 +1,25 @@
+Help on module parseconfig:
+
+NAME
+    parseconfig - Routines for parsing SExtractor-style input files.
+
+FILE
+    /devel/goods16/ferguson/junk/doc/doctmp/parseconfig.py
+
+DESCRIPTION
+    __author__ =  'Henry C. Ferguson'
+    __version__=  '1.0.3'
+
+FUNCTIONS
+    parseconfig(configfile, paramdict={}, booleans=[])
+        Parse a file of format: PARAMETER   value  # comment
+        into a dictionary
+        
+        Arguments:
+        configfile -- input file name
+        paramdict  -- dictionary of paramters (can be empty or already 
+                      initialized to default values) 
+        booleans   -- list of boolean parameters
+
+wrote parseconfig.html
+angsep.py

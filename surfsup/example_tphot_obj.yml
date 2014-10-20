@@ -1,0 +1,153 @@
+# Parameter file for running TPHOT object by object
+fitdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS0717/irac/ch1/tphot"
+# fitdir: where to put tphot results
+hiresdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS0717/hst"
+# where one can find high-res images
+loresdir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/MACS0717/irac/ch1"
+# where one can find low-res images
+# target information; can have a list of objects, then the length of ra, dec, 
+# and objname should all be the same.
+# ra: [109.382022]
+# dec: [37.767622]
+# objnames: ["B14_145"]
+# coordinates of the object, in degrees
+fit_boxsize: 30.0
+# size of the box around each target to fit simultaneously, or a list giving
+# the boundary (in pixel coordinates) of the box that includes all the objects
+# for fitting, in the high-res frame
+bkgd_boxsize: 20.0
+# size of the box within which to determine local background, in arcsec, or a 
+# list giving the boundary of the box within which to determine local background
+
+growsig: 0.4
+# how much to grow the mask in background determination
+hires_scale: 0.06    # pixel size of hi-res images, in arcsec
+lores_scale: 0.6     # pixel size of low-res images, in arcsec
+fitgauss: yes
+add_bkgdrms: yes
+
+# Hi-res images & catalogs, within hiresdir
+hires_drz: "f160w_macs0717_cut_60mas_drz.fits"
+hires_seg: "f160w_macs0717_cut_60mas_seg.fits"
+hires_flag: "f160w_macs0717_cut_60mas_flg.fits"
+hires_cat: "f160w_macs0717_ir_detect_cut_60mas.cat"
+hires_cutoutcat: "ch1_macs0717_60mas.cat"
+hr_fitcat: "f160w_macs0717_cut_60mas_tphot.cat"
+hires_band: "f160w"
+
+# Low-res images & catalogs
+lores_drz: "ch1_macs0717_cut_drz.fits"
+lores_seg: "ch1_macs0717_cut_seg.fits"
+lores_err: "ch1_macs0717_cut_unc.fits"
+lores_flg: "ch1_macs0717_cut_flg.fits"  # just an image with all zero values...
+psffile: "ch1_macs0717_pf0.01_psf_rad600_60mas_zoom0.80.fits"  # will change later
+lores_band: "ch2"
+
+fitpars1: "ch1_macs0717_pass1.param"
+fitpars2: "ch1_macs0717_pass2.param"
+# multikern: false   # to use multikern in the 2nd pass or not?
+cutoutdir: "allcut"
+fitcat: "ch1_macs0717_tphot_pass2.cat"
+band: "ch1"
+cluster_name: "macs0717"
+chi2box: 8     # in pixels
+
+ra: 
+   - 109.382022
+   - 109.391443
+   - 109.399120
+   - 109.379770
+   - 109.404579
+   - 109.373824
+   - 109.366140
+   - 109.390730
+   - 109.408768
+   - 109.378288
+   - 109.399690
+   - 109.380440
+   - 109.377060
+   - 109.368760
+   - 109.389817
+   - 109.373082
+   - 109.376591
+   - 109.363434
+   - 109.372670
+   - 109.409065
+   - 109.397251
+   - 109.386225
+   - 109.407728
+   - 109.392335
+   - 109.396578
+   - 109.377434
+   - 109.396586
+   - 109.409526
+   - 109.366908
+   - 109.376078
+   - 109.376153
+   - 109.401766
+dec:
+   - 37.767622
+   - 37.767048
+   - 37.764958
+   - 37.764690
+   - 37.754928
+   - 37.749445
+   - 37.747541
+   - 37.742226
+   - 37.740805
+   - 37.739163
+   - 37.738510
+   - 37.731220
+   - 37.736460
+   - 37.746150
+   - 37.765549
+   - 37.761676
+   - 37.754141
+   - 37.755068
+   - 37.754728
+   - 37.754686
+   - 37.752604
+   - 37.751928
+   - 37.742741
+   - 37.738083
+   - 37.766722
+   - 37.743617
+   - 37.763940
+   - 37.751726
+   - 37.742392
+   - 37.741508
+   - 37.738378
+   - 37.737900
+objnames:
+   - B14_145
+   - B14_166
+   - B14_234
+   - B14_247
+   - B14_844
+   - B14_1230  # problematic background
+   - B14_1373
+   - B14_1749
+   - B14_1825  # problematic background
+   - B14_1944
+   - MB_1378  # problematic background
+   - MB_2645-1050
+   - MB_2446-814
+   - MB_1898-339
+   - "206"
+   - "390"
+   - "620"
+   - "840"
+   - "858"
+   - "859"
+   - "1029"
+   - "1077"
+   - "1730"
+   - "1991"
+   - "174"
+   - "1656"
+   - "273"
+   - "1083"
+   - "1746"
+   - "1805"   # problem with multikern
+   - "1978"
+   - "2009"

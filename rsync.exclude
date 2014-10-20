@@ -1,0 +1,13 @@
+- rsync*
+- .*.swp
+- .*
+- pyraf/
+- uparm/
+- login*
+- *.pyc
+- tinytim*
+- my_pysynphot
+- wcstool*
+- *.o
+- *.so
+- build/

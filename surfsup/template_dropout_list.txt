@@ -1,0 +1,17 @@
+## A Template for dropout list
+## Cluster Name: MACSJ1149.5+2223
+## Begin supplementary info
+## ........................
+## End supplementary info
+# 1 ID [Kuang]
+# 2 RA
+# 3 DEC
+# 4 Color criteria reference [B11=Bouwens+11; H12=Hall+12]
+# 5 Final Priority [A=highest, B=possible, C=definitely not]
+# 6 Visual inspection notes
+    611 177.4129359 22.4136333  B11      B  "marginal detection in F814W"  
+   1012 177.3780222 22.4072774  B11      C  "no data in F105W"             
+   2284 177.4044585 22.3949705  B11/H12  C  "detection in F814W"
+   2972 177.4004829 22.3880206  B11      B  "marginal detection in F814W"
+    837 177.3896404 22.4103176  H12      C  "detection in F814W"
+   3050 177.4147387 22.3845353  H12      B  "marginal detection in F814W; near a bright neighbor"

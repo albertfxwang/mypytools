@@ -1,0 +1,257 @@
+Help on module sextutils:
+
+NAME
+    sextutils
+
+FILE
+    /devel/goods16/ferguson/junk/doc/doctmp/sextutils.py
+
+DESCRIPTION
+    # Utilities for parseing SExtractor files
+    #
+    # H. Ferguson - revised 4/23/03 to promote ints to floats if a value
+    # with a decimal point appears somewhere in the column originally thought
+    # to be integers
+    # 
+    # v2.1 - fails gracefully when the catalog has no sources
+    # v3.0 - added gettypes to return column types
+    #      - create new column names when they are not explictly in the header
+    # v4.0 - added gettypes to return column types
+    # v4.1 - uses numarray by default
+    # v4.2 - delete attributed 'l' (input lines from catalog) before returning
+    # v4.3 - 1/11/06Added less-offensive alias se_catalog() == sextractor()
+    # v4.4h- 1/21/06 Fixed bug in creating extra column names when last is a vector
+    # v4.4 - V. Laidler added new methods:
+    #           __len__ returns number of objects in catalog
+    #           __iter__ returns the index of the next row in the catalog
+    #           line(self,i) returns a constructed string containing the ith line 
+    #           buildheader returns a constructed header from the hdict
+    #        Added new attribute self.header: contains the header as read in
+    #           from the catalog.
+    #        Lines that start with '#' but are not followed by an integer are
+    #           now assumed to be comment lines, which are added to the
+    #           header but otherwise skipped.
+    # v4.5 - V. Laidler removed Numeric dependence
+    # v4.6 - V. Laidler converted to numpy
+    # v5.0 - 7/5/07 Numpy conversion
+    # v6.0 - V. Laidler: added rw_catalog class, reworked internals to avoid
+    #           column name clashes
+
+CLASSES
+    __builtin__.object
+        se_catalog
+            rw_catalog
+            sextractor
+    
+    class rw_catalog(se_catalog)
+     |  Extend the se_catalog class to support adding new columns,
+     |  and writing out the new version.
+     |  
+     |  Method resolution order:
+     |      rw_catalog
+     |      se_catalog
+     |      __builtin__.object
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, fname)
+     |  
+     |  addcolumn(self, colname, coldata)
+     |      coldata must be a 1d numarray of the correct length
+     |  
+     |  addemptycolumn(self, colname, coltype)
+     |      Defines a new column & updates all the bookkeeping, but
+     |      does not actually fill in the data.
+     |  
+     |  line(self, rownum)
+     |      Construct a new line as to be printed out
+     |  
+     |  printme(self)
+     |      Like writeto, but for sys.stdout
+     |  
+     |  writeto(self, outname, clobber=False)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Methods inherited from se_catalog:
+     |  
+     |  __iter__(self)
+     |  
+     |  __len__(self)
+     |  
+     |  buildheader(self)
+     |      Reconstruct the header from the header dictionary.
+     |      This might be useful if only a few columns were selected
+     |      from the file; otherwise just use the 'header' attribute.
+     |  
+     |  getcol(self, col, offset=0)
+     |  
+     |  getcols(self, *args)
+     |  
+     |  gettypes(self)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors inherited from se_catalog:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class se_catalog(__builtin__.object)
+     |  Read a SExtractor-style catalog. 
+     |  Usage: c=se_catalog(catalog,readfile=True,preserve_case=False)
+     |  Will read the catalog and return an object c, whose attributes are 
+     |  arrays containing the data. For example, c.mag_auto contains the 
+     |  mag_auto values.
+     |  Arguments:
+     |  catalog -- The input SExtractor catalog. 
+     |  readfile -- True means read the data. False means return the 
+     |     object without reading the data. The lines from the catalog
+     |     are returned as a list of ascii strings c.l. Useful if you want
+     |     to do some special parsing of some sort. 
+     |  preserve_case -- default (False) converts column names to lower case
+     |  
+     |  The input catalog MUST have a header with the SExtractor format:
+     |     # 1 ID comment
+     |     # 2 ALPHA_J200 another comment
+     |  That is, first column is the comment symbol #, second column is
+     |  the column number, third column is the column name, and the rest
+     |  of the line is a comment. SExtractor allows "vectors" to be identified
+     |  only by the first column...e.g.
+     |     # 12 FLUX_APER
+     |     # 20 FLUXERR_APER 
+     |  the missing columns are all aperture fluxes through different
+     |  apertures. These will be read into attributes:
+     |     c.flux_aper   # The first one
+     |     c.flux_aper_1 # the second one, and so on
+     |  
+     |  The case of aperture radii is a bit nasty, since these only
+     |  appear in the SExtractor configuration file. Use parseconfig()
+     |  to read that file.
+     |  
+     |  Methods defined here:
+     |  
+     |  __init__(self, cfile, readfile=True, preserve_case=False)
+     |  
+     |  __iter__(self)
+     |  
+     |  __len__(self)
+     |  
+     |  buildheader(self)
+     |      Reconstruct the header from the header dictionary.
+     |      This might be useful if only a few columns were selected
+     |      from the file; otherwise just use the 'header' attribute.
+     |  
+     |  getcol(self, col, offset=0)
+     |  
+     |  getcols(self, *args)
+     |  
+     |  gettypes(self)
+     |  
+     |  line(self, i)
+     |      Returns an assembled line of this catalog suitable for writing.
+     |      Except it doesn't really, if we modified the individual columns...
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+    
+    class sextractor(se_catalog)
+     |  Read SExtractor catalog...just an alias for se_catalog
+     |  
+     |  Method resolution order:
+     |      sextractor
+     |      se_catalog
+     |      __builtin__.object
+     |  
+     |  Methods inherited from se_catalog:
+     |  
+     |  __init__(self, cfile, readfile=True, preserve_case=False)
+     |  
+     |  __iter__(self)
+     |  
+     |  __len__(self)
+     |  
+     |  buildheader(self)
+     |      Reconstruct the header from the header dictionary.
+     |      This might be useful if only a few columns were selected
+     |      from the file; otherwise just use the 'header' attribute.
+     |  
+     |  getcol(self, col, offset=0)
+     |  
+     |  getcols(self, *args)
+     |  
+     |  gettypes(self)
+     |  
+     |  line(self, i)
+     |      Returns an assembled line of this catalog suitable for writing.
+     |      Except it doesn't really, if we modified the individual columns...
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors inherited from se_catalog:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+
+FUNCTIONS
+    getcol(col, lines)
+        Get a column from a SExtractor catalog. Determine the type
+        (integer, float, string) and return either an array of that
+        type (Int32, Float64) or a list of strings
+    
+    getcols(d, l, *args)
+        Get multiple columns from SExtractor list using getcol()
+    
+    getcolvalues(col, coltype, colentries)
+        Get a column from a SExtractor catalog. Determine the type
+        (integer, float, string) and return either an array of that
+        type (Int32, Float64) or a list of strings
+    
+    getfloats(col, lines, values)
+    
+    getints(col, lines, values)
+    
+    getstrings(col, lines, values)
+    
+    initcat(catfile, preserve_case=False)
+        parseheader -- reads the header of a SExtractor catalog file and 
+        returns a dictionary of parameter names and column numbers.
+        Also returns a list of lines containing the data.
+    
+    invert_dict(d)
+        Generate a new dictionary with the key/value relationship inverted
+    
+    parseconfig_se(cfile)
+        parseconfig -- read a SExtractor .sex file and return a dictionary
+        of options & values. Comments are ignored.
+    
+    writeheader(fh, colnames)
+        Write an SExtractor-style header to an open file handle.
+        
+        @param fh: file handle
+        @type fh: file
+        
+        @param colnames: list of column names
+        @type colnames: list
+        
+        @todo: add space checking to colnames
+        @todo: permit passing a filename?
+        @todo: handle comments
+
+DATA
+    __version__ = '6.0'
+
+VERSION
+    6.0
+
+wrote sextutils.html
+coords.py

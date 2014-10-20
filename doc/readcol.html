@@ -1,0 +1,140 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module readcol</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>readcol</strong></big></big> (version 5.0)</font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/devel/goods16/ferguson/junk/doctmp/readcol.py">/devel/goods16/ferguson/junk/doctmp/readcol.py</a></font></td></tr></table>
+    <p><tt>Routines&nbsp;for&nbsp;reading&nbsp;general&nbsp;whitespace-delimited,&nbsp;column-oriented&nbsp;files.<br>
+Returned&nbsp;values&nbsp;are&nbsp;either&nbsp;numpy&nbsp;one-dimensional&nbsp;arrays.<br>
+The&nbsp;read&nbsp;routines&nbsp;parse&nbsp;the&nbsp;input&nbsp;looking&nbsp;for<br>
+decimal&nbsp;points&nbsp;or&nbsp;non-numeric&nbsp;characters&nbsp;to&nbsp;decide&nbsp;on&nbsp;the&nbsp;format&nbsp;of<br>
+the&nbsp;output.&nbsp;&nbsp;Reading&nbsp;is&nbsp;therefore&nbsp;a&nbsp;bit&nbsp;slow,&nbsp;but&nbsp;the&nbsp;program&nbsp;interface<br>
+is&nbsp;extremely&nbsp;simple.&nbsp;For&nbsp;example,&nbsp;if&nbsp;the&nbsp;file&nbsp;'foo'&nbsp;has&nbsp;three&nbsp;columns,<br>
+read&nbsp;them&nbsp;in&nbsp;as&nbsp;follows:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo')<br>
+&nbsp;<br>
+A&nbsp;few&nbsp;other&nbsp;options:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a,b,c,d&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',1,3,5,7)&nbsp;&nbsp;#&nbsp;Read&nbsp;some&nbsp;selected&nbsp;columns<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo')&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;Read&nbsp;all&nbsp;the&nbsp;columns&nbsp;(a&nbsp;is&nbsp;then&nbsp;a&nbsp;tuple&nbsp;of&nbsp;arrays)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',fs=',')&nbsp;#&nbsp;Change&nbsp;the&nbsp;field&nbsp;separator&nbsp;to&nbsp;a&nbsp;comma&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',cmt='!')&nbsp;#&nbsp;Change&nbsp;the&nbsp;comment&nbsp;character&nbsp;to&nbsp;'!'<br>
+&nbsp;<br>
+The&nbsp;module&nbsp;also&nbsp;provides&nbsp;an&nbsp;object-oriented&nbsp;interface&nbsp;to&nbsp;save&nbsp;re-reading<br>
+the&nbsp;file&nbsp;if&nbsp;multiple&nbsp;getcol&nbsp;calls&nbsp;are&nbsp;desired:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;=&nbsp;<a href="#readcol">readcol</a>('foo')<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a,b&nbsp;=&nbsp;f.getcols(1,2)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;c,d&nbsp;=&nbsp;f.getcols(3,4)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;f.close()<br>
+&nbsp;<br>
+Ignores&nbsp;comment&nbsp;lines.<br>
+Ignores&nbsp;blank&nbsp;lines.&nbsp;<br>
+Optionally&nbsp;changes&nbsp;INDEF&nbsp;to&nbsp;a&nbsp;desired&nbsp;value&nbsp;(e.g.&nbsp;-99.99).<br>
+&nbsp;<br>
+As&nbsp;of&nbsp;version&nbsp;5.0,&nbsp;only&nbsp;numpy&nbsp;is&nbsp;offered&nbsp;(Numeric&nbsp;and&nbsp;numarray&nbsp;used&nbsp;to&nbsp;be&nbsp;<br>
+options).</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#fffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="string.html">string</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="readcol.html#readcol">readcol</a>
+</font></dt></dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="readcol">class <strong>readcol</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Column-oriented&nbsp;file&nbsp;methods.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="readcol-__init__"><strong>__init__</strong></a>(self, cfile, arraytype<font color="#909090">=&lt;module 'numpy' from '/usr/stsci/pyssg/Python-2.5.1/lib/python2.5/site-packages/numpy/__init__.pyc'&gt;</font>, indef<font color="#909090">=''</font>)</dt><dd><tt>Open&nbsp;file,&nbsp;read&nbsp;in&nbsp;all&nbsp;the&nbsp;lines,&nbsp;and&nbsp;return&nbsp;numpy&nbsp;arrays.<br>
+&nbsp;<br>
+Arguments:<br>
+cfile&nbsp;--&nbsp;file&nbsp;to&nbsp;read<br>
+arraytype&nbsp;--&nbsp;numpy&nbsp;(used&nbsp;to&nbsp;allow&nbsp;Numeric&nbsp;or&nbsp;numarray)<br>
+indef&nbsp;--&nbsp;string&nbsp;replacement&nbsp;for&nbsp;INDEF&nbsp;(e.g.&nbsp;NaN)</tt></dd></dl>
+
+<dl><dt><a name="readcol-close"><strong>close</strong></a>(self)</dt><dd><tt>Release&nbsp;the&nbsp;memory&nbsp;associated&nbsp;with&nbsp;the&nbsp;lines&nbsp;read&nbsp;by&nbsp;__init__</tt></dd></dl>
+
+<dl><dt><a name="readcol-getcol"><strong>getcol</strong></a>(self, col, fs<font color="#909090">=None</font>)</dt><dd><tt>Read&nbsp;in&nbsp;a&nbsp;single&nbsp;column&nbsp;(columns&nbsp;start&nbsp;at&nbsp;1).</tt></dd></dl>
+
+<dl><dt><a name="readcol-getcols"><strong>getcols</strong></a>(self, *args, **kwargs)</dt><dd><tt>Read&nbsp;in&nbsp;a&nbsp;multiple&nbsp;columns&nbsp;(columns&nbsp;start&nbsp;at&nbsp;1).</tt></dd></dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-fgetcol"><strong>fgetcol</strong></a>(cfile, col, arraytype<font color="#909090">='numpy'</font>, cmt<font color="#909090">='#'</font>, indef<font color="#909090">='-99.99'</font>)</dt><dd><tt>Read&nbsp;in&nbsp;a&nbsp;single&nbsp;column&nbsp;from&nbsp;a&nbsp;file.&nbsp;Parse&nbsp;the&nbsp;column&nbsp;to<br>
+determine&nbsp;the&nbsp;type&nbsp;of&nbsp;variable&nbsp;(integer,&nbsp;float,&nbsp;string)&nbsp;and&nbsp;return&nbsp;<br>
+either&nbsp;an&nbsp;array&nbsp;of&nbsp;that&nbsp;type&nbsp;(int64,&nbsp;float64)&nbsp;or&nbsp;a&nbsp;character&nbsp;array.<br>
+&nbsp;<br>
+Arguments:<br>
+cfile&nbsp;--&nbsp;file&nbsp;to&nbsp;be&nbsp;read<br>
+col&nbsp;--&nbsp;desired&nbsp;column&nbsp;(starting&nbsp;at&nbsp;1)&nbsp;&nbsp;&nbsp;&nbsp;<br>
+arraytype&nbsp;--&nbsp;numpy<br>
+indef="-99.99"&nbsp;(INDEF&nbsp;replacement&nbsp;string)</tt></dd></dl>
+ <dl><dt><a name="-fgetcols"><strong>fgetcols</strong></a>(cfile, *args, **keywords)</dt><dd><tt>Read&nbsp;multiple&nbsp;columns&nbsp;from&nbsp;a&nbsp;file.&nbsp;Parse&nbsp;each&nbsp;column&nbsp;to<br>
+determine&nbsp;the&nbsp;type&nbsp;of&nbsp;variable&nbsp;(integer,&nbsp;float,&nbsp;string)&nbsp;and&nbsp;return&nbsp;<br>
+either&nbsp;one-dimensional&nbsp;arrays&nbsp;of&nbsp;the&nbsp;appropriate&nbsp;type&nbsp;(int64,&nbsp;float64)&nbsp;<br>
+or&nbsp;a&nbsp;character&nbsp;array.<br>
+&nbsp;<br>
+Arguments:<br>
+cfile&nbsp;--&nbsp;file&nbsp;to&nbsp;be&nbsp;read<br>
+*args&nbsp;--&nbsp;desired&nbsp;columns&nbsp;(starting&nbsp;at&nbsp;1)&nbsp;<br>
+**keywords&nbsp;--&nbsp;indef="-99.99"&nbsp;(INDEF&nbsp;replacement&nbsp;string)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;cmt="#"&nbsp;(comment&nbsp;character)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;fs=None&nbsp;(field&nbsp;separator;&nbsp;defaults&nbsp;to&nbsp;whitespace)<br>
+&nbsp;<br>
+Examples:<br>
+&nbsp;&nbsp;If&nbsp;the&nbsp;file&nbsp;'foo'&nbsp;has&nbsp;three&nbsp;columns,&nbsp;read&nbsp;them&nbsp;in&nbsp;as&nbsp;follows:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo')<br>
+&nbsp;<br>
+&nbsp;&nbsp;A&nbsp;few&nbsp;other&nbsp;examples:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a,b,c,d&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',1,3,5,7)&nbsp;#&nbsp;read&nbsp;selected&nbsp;columns&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo')&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;read&nbsp;all&nbsp;columns&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',fs=',')&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;Change&nbsp;the&nbsp;field&nbsp;separator<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a,b,c&nbsp;=&nbsp;<a href="#-fgetcols">fgetcols</a>('foo',cmt='!')&nbsp;&nbsp;&nbsp;#&nbsp;Change&nbsp;the&nbsp;comment&nbsp;character&nbsp;to&nbsp;'!'</tt></dd></dl>
+ <dl><dt><a name="-getcol"><strong>getcol</strong></a>(col, lines, N, fs<font color="#909090">=None</font>)</dt><dd><tt>Read&nbsp;in&nbsp;a&nbsp;single&nbsp;column&nbsp;from&nbsp;a&nbsp;list&nbsp;of&nbsp;strings.&nbsp;Parse&nbsp;each&nbsp;column&nbsp;to<br>
+determine&nbsp;the&nbsp;type&nbsp;of&nbsp;variable&nbsp;(integer,&nbsp;float,&nbsp;string)&nbsp;and&nbsp;return&nbsp;<br>
+either&nbsp;an&nbsp;array&nbsp;of&nbsp;that&nbsp;type&nbsp;(int64,&nbsp;float64)&nbsp;or&nbsp;a&nbsp;character&nbsp;array.<br>
+&nbsp;<br>
+Arguments:<br>
+col&nbsp;--&nbsp;desired&nbsp;column&nbsp;(starting&nbsp;at&nbsp;1)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+lines&nbsp;--&nbsp;list&nbsp;of&nbsp;strings&nbsp;(one&nbsp;per&nbsp;line)&nbsp;read&nbsp;from&nbsp;input&nbsp;file<br>
+N&nbsp;--&nbsp;numpy</tt></dd></dl>
+ <dl><dt><a name="-getfloats"><strong>getfloats</strong></a>(col, lines, values, fs<font color="#909090">=None</font>)</dt></dl>
+ <dl><dt><a name="-getints"><strong>getints</strong></a>(col, lines, values, fs<font color="#909090">=None</font>)</dt></dl>
+ <dl><dt><a name="-getstrings"><strong>getstrings</strong></a>(col, lines, values, fs<font color="#909090">=None</font>)</dt></dl>
+ <dl><dt><a name="-remove_comments"><strong>remove_comments</strong></a>(l, cmt<font color="#909090">='#'</font>)</dt></dl>
+ <dl><dt><a name="-replace_indef"><strong>replace_indef</strong></a>(l, indef)</dt></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>__version__</strong> = '5.0'</td></tr></table>
+</body></html>

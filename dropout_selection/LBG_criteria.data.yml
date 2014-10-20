@@ -1,0 +1,360 @@
+# Specify the color boundaries using the equations
+# color1 >= coeffs[i][0] + coeffs[i][1] * color2
+# if len(coeffs[i]) == 4, it means it is relation 1 OR relation 2
+# (color1 >= coeffs[i][0]+coeffs[i][1]*color2) OR (color1>=coeffs[i][2]+coeffs[i][3]*color2)
+# coeffs can have more than one set of values, but should always be a pair of 
+# numbers (use 0 for coeffs[i][1] if it is just a cut in color1).
+# and color1 = band1 - band2, color2 = band2 - band3 if len(bands)==3
+# or color2 = band3 - band4 if len(bands)==4
+# Then specify the limit of color2: color2 <= color2lim
+
+f435w_drop:
+   redshift: 4.0
+   Gia04:
+      ref: "Giavalisco et al. 2004, ApJ, 600, L103"
+      criteria: "(B-V)>=1.2 AND (B-V)>=1.2+1.4*(V-z) AND (V-z)<=1.2"
+      label: Gia04
+      bands: ['f435w', 'f606w', 'f850lp']
+      # colorname1: "B-V"
+      # colorname2: "V-z"
+      coeffs: 
+         - [1.2, 0.]
+         - [1.2, 1.4]
+      color2lim: 1.2
+      eval: "(self.color1 >= 1.2) & (self.color1 >= (1.2+1.4*self.color2)) & (self.color2 <= 1.2)"
+   Bou07:
+      ref: "Bouwens et al. 2007, ApJ, 670, 928"
+      criteria: "(B-V)>=1.1 AND (B-V)>=1.1+(V-z) AND (V-z)<=1.6"
+      label: "Bou07"
+      bands: ['f435w', 'f606w', 'f850lp']
+      coeffs: 
+         - [1.1, 0.]
+         - [1.1, 1.0]
+      color2lim: 1.6
+      eval: "(self.color1>=1.1) & (self.color1>=(1.1+1.0*self.color2)) & (self.color2<=1.6)"
+   Bec06:
+      ref: "Beckwith et al. 2006, ApJ, 132, 1729"
+      criteria: "(B-V)>=1.1 AND (B-V)>=1.1+(V-z) AND (V-z)<1.6"
+      label: "B06"
+      bands: ['f435w', 'f606w', 'f850lp']
+      coeffs: 
+         - [1.1, 0.]
+         - [1.1, 1.0]
+      color2lim: 1.6
+      eval: "(self.color1>=1.1) & (self.color1>=(1.1+self.color2)) & (self.color2<1.6)"
+
+f606w_drop:
+   redshift: 5.0
+   Gia04:
+      ref: "Giavalisco et al. 2004, ApJ, 600, L103"
+      criteria: "[(V-i)>1.5+0.9*(i-z) OR (V-i)>2.0] AND (V-i)>=1.2 AND (i-z)<=1.3"
+      label: "G04"
+      bands: ['f606w', 'f775w', 'f850lp']
+      coeffs:
+         - [1.2, 0.0]
+         - [1.5, 0.9, 2.0, 0.0]
+      color2lim: 1.3
+      eval: "((self.color1>(1.5+0.9*self.color2)) | (self.color1>2.0)) & (self.color1>=1.2) & (self.color2<=1.3)" 
+   Bou07:
+      ref: "Bouwens et al. 2007, ApJ, 670, 928"
+      criteria: "((V-i)>0.9*(i-z) OR (V-i)>2.0) AND (V-i > 1.2) AND (i-z < 1.3)"
+      label: "B07"
+      bands: ['f606w', 'f775w', 'f850lp']
+      coeffs:
+         - [1.2, 0.]
+         - [0.0, 0.9, 2.0, 0.0]
+      color2lim: 1.3
+      eval: "((self.color1>(0.9*self.color2)|(self.color1>2.0)) & (self.color1>1.2) & (self.color2<1.3))"
+   
+f775w_drop:
+   redshift: 6.0
+   Gon11:
+      ref : "Gonzalez et al. 2011, ApJL, 735, L34"
+      criteria: "(i-z)>1.3 AND (z-J)<0.8"
+      label: "G11"
+      bands: ['f775w', 'f850lp', 'f125w']
+      coeffs:
+         - [1.3, 0.0]
+      color2lim: 0.8
+      eval: "((self.color1>1.3) & (self.color2<0.8))"
+   Bou07:
+      ref: "Bouwens et al. 2007, 670, 928"
+      criteria: "(i-z)>1.3 AND [((V-i)>2.8) OR (S/N(V)<2)]"
+      bands: ['f775w', 'f850lp']
+      label: "B07"
+      coeffs:
+         - [1.3, 0.0]
+      eval: "(self.color1>1.3)"
+   Hua13:   
+      # The cut involving F606W is not included here
+      ref: "Bouwens et al. 2007, 670, 928 + (z-J)<0.8 from Gonzalez+11 + modified V-i limit"
+      criteria: "(i-z)>1.3 AND [((V-i)>2.8) OR (S/N(V)<2)] AND (z-J)<0.8"
+      bands: ['f775w', 'f850lp', 'f125w']
+      coeffs:
+         - [1.3, 0.0]
+      color2lim: 0.8
+      eval: "((self.color1>1.3) & (self.color2<0.8))"
+   Yan13:   
+      ref: "Haojing Yan"
+      criteria: "(I-J)<=2.0 AND (J-H)<=0.3"
+      label: "Haojing_z6"
+      bands: ['f814w', 'f125w', 'f160w']
+      coeffs:
+         - [2.0, 0.0]
+      color2lim: 0.3
+      eval: "(self.color1>=2.0) & (self.color2<=0.3)"
+
+f814w_drop:
+   redshift: 7.0  # -ish... using filters available for RCS2-2327 and BorG
+   RCS2327: 
+      ref: "Huang et al. 2014, in preparation"
+      criteria: "(i-Y)>2.2 AND (i-Y)>=(2.0*(Y-H)+1.0) AND (Y-H)<=1.8"
+      label: "RCS2327"
+      bands: ["f814w", "f098m", "f160w"]
+      coeffs:
+         - [2.2, 0.0]
+         - [1.0, 2.0]
+      color2lim: 1.6
+      eval: "(self.color1>=2.2) & (self.color1>(1.0+2.0*self.color2)) & (self.color2<1.7)"
+
+   MACS0454:
+      ref: "Huang et al. 2014, in preparation"
+      criteria: "(i-Y)>=3.0 AND (Y-H)<=1.0"
+      label: "MACS0454"
+      bands: ["f814w", "f110w", "f160w"]
+      coeffs:
+         - [3.0, 0.0]
+      color2lim: 1.0
+      eval: "(self.color1>=3.0) & (self.color2<=1.0)"
+
+   MACS0454_2:
+      ref: "Huang et al. 2014, in preparation"
+      criteria: "(i-Y)>=1.1 AND (Y-H)<=0.3"
+      label: "MACS0454_2"
+      bands: ["f814w", "f110w", "f160w"]
+      coeffs:
+         - [1.1, 0.0]
+      color2lim: 0.3
+      eval: "(self.color1>=1.5) & (self.color2<=0.3)"
+
+   Atek14:
+      ref: "Atek et al. 2014, ApJ, 786, 60"
+      criteria: "(i-Y)>0.8 AND (i-Y)>0.6+2*(Y-J) AND (Y-J)<0.8"
+      label: "A13"
+      bands: ['f814w', 'f105w', 'f125w']
+      coeffs:
+         - [0.8, 0.0]
+         - [0.6, 2.0]
+      color2lim: 0.8
+      eval: "(self.color1>0.8) & (self.color1>(0.6+2.0*self.color2)) & (self.color2<0.8)"
+
+   A2744:
+      ref: "Huang et al. 2014"
+      criteria: "(i-Y)>=1.0 AND (i-Y)>=1.0+1.3*(Y-H) AND (Y-H)<=0.5"
+      label: "H14"
+      bands: ['f814w', 'f105w', 'f160w']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 1.3]
+      color2lim: 0.5
+      eval: "(self.color1>1.0) & (self.color1>=(1.0+1.3*self.color2)) & (self.color2<=0.5)"
+
+f850lp_drop:
+   redshift: 7.0
+   Bou11_ERS_zJH:
+      ref: "Bouwens et al. 2011, ApJ, 737, 90"
+      criteria: "(z-J)>0.9 AND (z-J)>0.8+1.1*(J-H) AND (z-J)>0.4+1.1*(Y-J) AND (Y-J)<1.25 AND (J-H)<0.5"
+      label: "B11"
+      bands: ['f850lp', 'f125w', 'f160w']
+      coeffs:
+         - [0.9, 0.0]
+         - [0.8, 1.1]
+      color2lim: 0.5
+      eval: "(self.color1>0.9) & (self.color1>(0.8+1.1*self.color2)) & (self.color2<0.5)"
+
+   Bou11_ERS_zYJ:
+      ref: "Bouwens et al. 2011, ApJ, 737, 90"
+      criteria: "(z-J)>0.9 AND (z-J)>0.8+1.1*(J-H) AND (z-J)>0.4+1.1*(Y-J) AND (Y-J)<1.25 AND (J-H)<0.5"
+      label: "B11"
+      bands: ['f850lp', 'f125w', 'f098m', 'f125w']
+      coeffs:
+         - [0.9, 0.0]
+         - [0.4, 1.1]
+      color2lim: 1.25
+      eval: "(self.color1>0.9) & (self.color1>(0.4+1.1*self.color2) & (self.color2<1.25)"
+
+   Bou11:
+      ref: "Bouwens et al. 2011, ApJ, 737, 90"
+      criteria: "(z-Y > 0.7) AND (Y-J < 0.45) AND (z-Y > 0.42 + 1.4*(Y-J))"
+      label: "B11"
+      bands: ['f850lp', 'f105w', 'f125w']
+      coeffs: 
+         - [0.7, 0.0]
+         - [0.42, 1.4]
+      color2lim: 0.45
+      eval: "(self.color1>0.7) & (self.color2<0.45) & (self.color1>(0.42+1.4*self.color2))"
+
+   Hall12:
+      ref: "Hall et al. 2012, ApJ, 745, 155"
+      criteria: "(((z-J) > 1.0 + 0.4 * (J-H)) AND ((z-J)>1.0) AND ((J-H)<=1.1)"
+      label: "H12"
+      bands: ['f850lp', 'f110w', 'f160w']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 0.4]
+      color2lim: 1.1
+      eval: "(self.color1>1.0) & (self.color2<=1.1) & (self.color1>(1.0+0.4*self.color2))"
+
+   Hall12mod:
+      ref: "Hall et al. 2012, ApJ, 745, 155 (modified)"
+      criteria: "(((z-J) > 1.0 + 0.4 * (J-H)) AND ((z-J)>1.0) AND ((J-H)<=0.3)"
+      label: "H12mod"
+      bands: ['f850lp', 'f110w', 'f160w']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 0.4]
+      color2lim: 0.3
+      eval: "(self.color1>1.0) & (self.color2<=0.3) & (self.color1>(1.0+0.4*self.color2))"
+
+f098m_drop:
+   redshift: 8.0
+   Tre11:
+      ref: "Trenti et al. 2011, ApJL, 727, L39"
+      criteria: "(Y-J)>=1.75 & (J-H)<0.02+0.15*(Y-J-1.75)"
+      label: "T11"
+      bands: ['f098m', 'f125w', 'f160w']
+      coeffs:
+         - [1.75, 0.]
+         - [1.617, 6.667]
+      color2lim: 6.  # there's not really a limit here
+      eval: "(self.color1>1.75) & (self.color2<(0.02+0.15*(self.color1-1.75)))"
+
+f105w_drop:
+   redshift: 8.0
+   Atek14:
+      ref: "Atek et al. 2014, ApJ, 786, 60"
+      criteria: "(Y-J)>0.5 AND (Y-J)>0.4+1.6*(J-H) AND (J-H)<0.5"
+      label: "A13"
+      bands: ['f105w', 'f125w', 'f140w']
+      coeffs:
+         - [0.5, 0.0]
+         - [0.4, 1.6]
+      color2lim: 0.5
+      eval: "(self.color1>0.5) & (self.color1>(0.4+1.6*self.color2)) & (self.color2<0.5)"
+
+   Hua14:
+      ref: "Huang et al. 2014"
+      criteria: "(Y-J)>=0.9 AND (J-H)<=0.5"
+      label: "H14"
+      bands: ["f105w", "f125w", "f160w"]
+      coeffs:
+         - [0.9, 0.]
+      color2lim: 0.5
+      eval: "(self.color1>=0.9) & (self.color2<=0.5)"
+
+   Bou11:
+      ref: "Bouwens et al. 2011, ApJ, 737, 90"
+      criteria: "(Y-J)>0.45 AND (J-H)<0.5"
+      label: "B11"
+      bands: ['f105w', 'f125w', 'f160w']
+      coeffs:
+         - [0.45, 0.]
+      color2lim: 0.5
+      eval: "(self.color1>0.45) & (self.color2<0.5)"
+
+# f125w_drop:
+#    redshift: 9.0
+#    Zheng14:
+#       ref: "arXiv:1402.6743"
+#       criteria: "(J - H) > 0.8"
+#       label: "Z14"
+#       bands: ["f125w", "f160w"]
+
+uvimos_drop:
+   UBVY105:
+      ref: "Huang et al., 2014"
+      criteria: "(U-B)>=1.0 AND (U-B)>=1.3*(V-Y)+1.0 AND (V-Y)<=0.9"
+      label: "ubvy105"
+      bands: ['uvimos', 'f435w', 'f606w', 'f105w']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 1.3]
+      color2lim: 0.9
+      eval: "(self.color1>=1.0)&(self.color1>=(self.color2*1.3+1.0))&(self.color2<=0.9)"
+
+   UBVY105_2:  # slightly more conservative
+      ref: "Huang et al., 2014"
+      criteria: "(U-B)>=1.0 AND (U-B)>=1.7*(V-Y)+1.0 AND (V-Y)<=0.9"
+      label: "ubvy105"
+      bands: ['uvimos', 'f435w', 'f606w', 'f105w']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 1.7]
+      color2lim: 0.9
+      eval: "(self.color1>=1.0)&(self.color1>=(self.color2*1.7+1.0))&(self.color2<=0.9)"
+
+   UBVY098:
+      ref: "Huang et al., 2013"
+      criteria: "(U-B)>=1.0 AND (U-B)>=1.3*(V-Y)+1.0 AND (V-Y)<=0.9"
+      label: "ubvy098"
+      bands: ['uvimos', 'f435w', 'f606w', 'f098m']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 1.3]
+      color2lim: 0.9
+      eval: "(self.color1>=1.0)&(self.color1>=(self.color2*1.3+1.0))&(self.color2<=0.9)"
+
+   UBVY098_2:  # more conservative
+      ref: "Huang et al., 2014"
+      criteria: "(U-B)>=1.0 AND (U-B)>=1.7*(V-Y)+1.0 AND (V-Y)<=0.9"
+      label: "ubvy098"
+      bands: ['uvimos', 'f435w', 'f606w', 'f098m']
+      coeffs:
+         - [1.0, 0.0]
+         - [1.0, 1.7]
+      color2lim: 0.9
+      eval: "(self.color1>=1.0)&(self.color1>=(self.color2*1.7+1.0))&(self.color2<=0.9)"
+
+   UBY105:
+      ref: "Huang et al., 2013"
+      criteria: "(U-B)>=1.6 AND (U-B)>=(1./3.)*(B-Y)+1.6 AND (B-Y)<=2.4"
+      label: "uby105"
+      bands: ['uvimos', 'f435w', 'f105w']
+      coeffs:
+         - [1.6, 0.0]
+         - [1.6, 0.333]
+      color2lim: 2.4
+      eval: "(self.color1>=1.6)&(self.color1>=(self.color2/3.0+1.6))&(self.color2<=2.4)"
+
+   UBY098:
+      ref: "Huang et al., 2013"
+      criteria: "(U-B)>=1.6 AND (U-B)>=(1./3.)*(B-Y)+1.6 AND (B-Y)<=2.4"
+      label: "uby098"
+      bands: ['uvimos', 'f435w', 'f098m']
+      coeffs:
+         - [1.6, 0.0]
+         - [1.6, 0.333]
+      color2lim: 2.4
+      eval: "(self.color1>=1.6)&(self.color1>=(self.color2/3.0+1.6))&(self.color2<=2.4)"
+
+   W14:
+      ref: "Williams et al., 2014, ApJ, 780, 1"
+      criteria: "(U-B)>=1.4 AND (U-B)>=0.85+0.5*(B-z) AND (B-z)<=4.0"
+      label: "ubz_w14"
+      bands: ['uvimos', 'f435w', 'f850lp']
+      coeffs:
+         - [1.4, 0.0]
+         - [0.85, 0.5]
+      color2lim: 4.0
+      eval: "(self.color1>=1.4)&(self.color1>=(0.85+0.5*self.color2))&(self.color2<=4.0)"
+
+   W14_mod:
+      ref: "Williams et al., 2014, ApJ, 780, 1 (MODIFIED)"
+      criteria: "(U-B)>=1.4 AND (U-B)>=0.85+0.7*(B-z) AND (B-z)<=3.0"
+      label: "ubz_w14_mod"
+      bands: ['uvimos', 'f435w', 'f850lp']
+      coeffs:
+         - [1.4, 0.0]
+         - [0.85, 0.7]
+      color2lim: 3.0
+      eval: "(self.color1>=1.4)&(self.color1>=(0.85+0.7*self.color2))&(self.color2<=3.0)"

@@ -1,0 +1,141 @@
+cluster_name: "RXJ1347"
+image_dir: "/Users/khuang/SurfsUp/RXJ1347/hst/30mas"  # From block-summed 60mas images
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/RXJ1347/hst"
+merged_table: "hst_rxj1347_60mas_merged.fits"
+# sexfile: "wfc3ir_rxj1347_65mas.sex"
+sexfile: "wfc3ir_rxj1347_60mas.sex"
+filters:
+   - "f435w" 
+   - "f475w"
+   - "f606w"
+   - "f625w"
+   - "f775w"
+   - "f814w"
+   - "f850lp"
+   - "f105w"
+   - "f110w"
+   - "f125w"
+   - "f140w"
+   - "f160w"
+   - "wfc3ir"
+detectband: "wfc3ir"
+scale: 0.06   # in arcsec
+drz_images:
+   f435w:  "f435w_rxj1347_cut_60mas_blksum_drz.fits"
+   f475w:  "f475w_rxj1347_cut_60mas_blksum_drz.fits"
+   f606w:  "f606w_rxj1347_cut_60mas_blksum_drz.fits"
+   f625w:  "f625w_rxj1347_cut_60mas_blksum_drz.fits"
+   f775w:  "f775w_rxj1347_cut_60mas_blksum_drz.fits"
+   f814w:  "f814w_rxj1347_cut_60mas_blksum_drz.fits"
+   f850lp: "f850lp_rxj1347_cut_60mas_blksum_drz.fits"
+   # f105w:  "f105w_rxj1347_cut_60mas_blksum_drz.fits"
+   # f110w:  "f110w_rxj1347_cut_60mas_blksum_drz.fits"
+   # f125w:  "f125w_rxj1347_cut_60mas_blksum_drz.fits"
+   # f140w:  "f140w_rxj1347_cut_60mas_blksum_drz.fits"
+   # f160w:  "f160w_rxj1347_cut_60mas_blksum_drz.fits"
+   f105w:  "f105w_rxj1347_cut_60mas_wglass_drz.fits"
+   f110w:  "f110w_rxj1347_cut_60mas_wglass_drz.fits"
+   f125w:  "f125w_rxj1347_cut_60mas_wglass_drz.fits"
+   f140w:  "f140w_rxj1347_cut_60mas_wglass_drz.fits"
+   f160w:  "f160w_rxj1347_cut_60mas_wglass_drz.fits"
+   wfc3ir: "wfc3ir_tot_rxj1347_cut_60mas_blksum_drz.fits"
+wht_images:
+   f435w:  "f435w_rxj1347_cut_60mas_blksum_wht.fits"
+   f475w:  "f475w_rxj1347_cut_60mas_blksum_wht.fits"
+   f606w:  "f606w_rxj1347_cut_60mas_blksum_wht.fits"
+   f625w:  "f625w_rxj1347_cut_60mas_blksum_wht.fits"
+   f775w:  "f775w_rxj1347_cut_60mas_blksum_wht.fits"
+   f814w:  "f814w_rxj1347_cut_60mas_blksum_wht.fits"
+   f850lp: "f850lp_rxj1347_cut_60mas_blksum_wht.fits"
+   # f105w:  "f105w_rxj1347_cut_60mas_blksum_wht.fits"
+   # f110w:  "f110w_rxj1347_cut_60mas_blksum_wht.fits"
+   # f125w:  "f125w_rxj1347_cut_60mas_blksum_wht.fits"
+   # f140w:  "f140w_rxj1347_cut_60mas_blksum_wht.fits"
+   # f160w:  "f160w_rxj1347_cut_60mas_blksum_wht.fits"
+   f105w:  "f105w_rxj1347_cut_60mas_wglass_wht.fits"
+   f110w:  "f110w_rxj1347_cut_60mas_wglass_wht.fits"
+   f125w:  "f125w_rxj1347_cut_60mas_wglass_wht.fits"
+   f140w:  "f140w_rxj1347_cut_60mas_wglass_wht.fits"
+   f160w:  "f160w_rxj1347_cut_60mas_wglass_wht.fits"
+   wfc3ir: "wfc3ir_tot_rxj1347_cut_60mas_blksum_wht.fits"
+flg_images:
+   f435w:  "f435w_rxj1347_cut_60mas_blksum_flg.fits"
+   f475w:  "f475w_rxj1347_cut_60mas_blksum_flg.fits"
+   f606w:  "f606w_rxj1347_cut_60mas_blksum_flg.fits"
+   f625w:  "f625w_rxj1347_cut_60mas_blksum_flg.fits"
+   f775w:  "f775w_rxj1347_cut_60mas_blksum_flg.fits"
+   f814w:  "f814w_rxj1347_cut_60mas_blksum_flg.fits"
+   f850lp: "f850lp_rxj1347_cut_60mas_blksum_flg.fits"
+   # f105w:  "f105w_rxj1347_cut_60mas_blksum_flg.fits"
+   # f110w:  "f110w_rxj1347_cut_60mas_blksum_flg.fits"
+   # f125w:  "f125w_rxj1347_cut_60mas_blksum_flg.fits"
+   # f140w:  "f140w_rxj1347_cut_60mas_blksum_flg.fits"
+   # f140w:  "f140w_rxj1347_cut_60mas_wglass_flg.fits"
+   # f160w:  "f160w_rxj1347_cut_60mas_blksum_flg.fits"
+   f105w:  "f105w_rxj1347_cut_60mas_wglass_flg.fits"
+   f110w:  "f110w_rxj1347_cut_60mas_wglass_flg.fits"
+   f125w:  "f125w_rxj1347_cut_60mas_wglass_flg.fits"
+   f140w:  "f140w_rxj1347_cut_60mas_wglass_flg.fits"
+   f160w:  "f160w_rxj1347_cut_60mas_wglass_flg.fits"
+   wfc3ir: "wfc3ir_tot_rxj1347_cut_60mas_blksum_flg.fits"
+zeropoints:
+   # calculated from header keywords PHOTFLAM and PHOTPLAM
+   f435w: 25.648
+   f475w: 26.071
+   f606w: 26.481
+   f625w: 25.897
+   f775w: 25.655
+   f814w: 25.949
+   f850lp: 24.857
+   f105w: 26.259
+   f110w: 26.812
+   f125w: 26.220
+   f140w: 26.442
+   f160w: 25.936
+   wfc3ir: 26.000  # fiducial value
+ebmv_mean: 0.0625
+ext_coeff:
+   f435w: 4.117
+   f475w: 3.724
+   f606w: 2.929
+   f625w: 2.671
+   f775w: 2.018
+   f814w: 1.822
+   f850lp: 1.473
+   f105w: 1.015
+   f110w: 0.876
+   f125w: 0.757
+   f140w: 0.609
+   f160w: 0.470
+   wfc3ir: 0.
+effgain:  # effective gain = ccdgain * exptime
+   f435w: 8136.000
+   f475w: 21120.000
+   f606w: 7756.000
+   f625w: 7696.000
+   f775w: 8192.000
+   f814w: 29360.000
+   f850lp: 21120.000
+   f105w: 8352.69
+   f110w: 2514.67
+   f125w: 2514.67
+   f140w: 11132.03
+   f160w: 10808.68
+   wfc3ir: 1.0
+skyrms_factor:
+   # on the resampled 60mas images
+   f435w:  1.177
+   f475w:  1.244
+   f606w:  1.186
+   f625w:  1.167
+   f775w:  1.200
+   f814w:  1.357
+   f850lp: 1.279
+   # f105w:  1.790
+   f105w:  2.079
+   f110w:  1.854
+   f125w:  1.660
+   # f140w:  1.984
+   f140w:  1.954
+   f160w:  2.285
+   wfc3ir: 1.0

@@ -1,0 +1,1 @@
+/Users/khuang/Dropbox/codes/mypytools/sedtools/galtemplates/lbgtemp_z3_Zsolar_constSFH_200Myr.sed

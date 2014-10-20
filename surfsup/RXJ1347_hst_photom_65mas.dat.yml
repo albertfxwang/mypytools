@@ -1,0 +1,121 @@
+cluster_name: "RXJ1347"
+image_dir: "/Users/khuang/SurfsUp/RXJ1347/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/RXJ1347/hst"
+merged_table: "hst_rxj1347_65mas_merged.fits"
+sexfile: "wfc3ir_rxj1347_65mas.sex"
+filters:
+   - "f435w" 
+   - "f475w"
+   - "f606w"
+   - "f625w"
+   - "f775w"
+   - "f814w"
+   - "f850lp"
+   - "f105w"
+   - "f110w"
+   - "f125w"
+   - "f140w"
+   - "f160w"
+   - "wfc3ir"
+detectband: "wfc3ir"
+scale: 0.065   # in arcsec
+drz_images:
+   f435w: "hlsp_clash_hst_acs_rxj1347_f435w_v1_drz.fits"
+   f475w: "hlsp_clash_hst_acs_rxj1347_f475w_v1_drz.fits"
+   f606w: "hlsp_clash_hst_acs_rxj1347_f606w_v1_drz.fits"
+   f625w: "hlsp_clash_hst_acs_rxj1347_f625w_v1_drz.fits"
+   f775w: "hlsp_clash_hst_acs_rxj1347_f775w_v1_drz.fits"
+   f814w: "hlsp_clash_hst_acs_rxj1347_f814w_v1_drz.fits"
+   f850lp: "hlsp_clash_hst_acs_rxj1347_f850lp_v1_drz.fits"
+   f105w: "hlsp_clash_hst_wfc3ir_rxj1347_f105w_v1_drz.fits"
+   f110w: "hlsp_clash_hst_wfc3ir_rxj1347_f110w_v1_drz.fits"
+   f125w: "hlsp_clash_hst_wfc3ir_rxj1347_f125w_v1_drz.fits"
+   f140w: "hlsp_clash_hst_wfc3ir_rxj1347_f140w_v1_drz.fits"
+   f160w: "hlsp_clash_hst_wfc3ir_rxj1347_f160w_v1_drz.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_rxj1347_total_v1_drz.fits"
+wht_images:
+   f435w: "hlsp_clash_hst_acs_rxj1347_f435w_v1_wht.fits"
+   f475w: "hlsp_clash_hst_acs_rxj1347_f475w_v1_wht.fits"
+   f606w: "hlsp_clash_hst_acs_rxj1347_f606w_v1_wht.fits"
+   f625w: "hlsp_clash_hst_acs_rxj1347_f625w_v1_wht.fits"
+   f775w: "hlsp_clash_hst_acs_rxj1347_f775w_v1_wht.fits"
+   f814w: "hlsp_clash_hst_acs_rxj1347_f814w_v1_wht.fits"
+   f850lp: "hlsp_clash_hst_acs_rxj1347_f850lp_v1_wht.fits"
+   f105w: "hlsp_clash_hst_wfc3ir_rxj1347_f105w_v1_wht.fits"
+   f110w: "hlsp_clash_hst_wfc3ir_rxj1347_f110w_v1_wht.fits"
+   f125w: "hlsp_clash_hst_wfc3ir_rxj1347_f125w_v1_wht.fits"
+   f140w: "hlsp_clash_hst_wfc3ir_rxj1347_f140w_v1_wht.fits"
+   f160w: "hlsp_clash_hst_wfc3ir_rxj1347_f160w_v1_wht.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_rxj1347_total_v1_wht.fits"
+flg_images:
+   f435w: "hlsp_clash_hst_acs_rxj1347_f435w_v1_flg.fits"
+   f475w: "hlsp_clash_hst_acs_rxj1347_f475w_v1_flg.fits"
+   f606w: "hlsp_clash_hst_acs_rxj1347_f606w_v1_flg.fits"
+   f625w: "hlsp_clash_hst_acs_rxj1347_f625w_v1_flg.fits"
+   f775w: "hlsp_clash_hst_acs_rxj1347_f775w_v1_flg.fits"
+   f814w: "hlsp_clash_hst_acs_rxj1347_f814w_v1_flg.fits"
+   f850lp: "hlsp_clash_hst_acs_rxj1347_f850lp_v1_flg.fits"
+   f105w: "hlsp_clash_hst_wfc3ir_rxj1347_f105w_v1_flg.fits"
+   f110w: "hlsp_clash_hst_wfc3ir_rxj1347_f110w_v1_flg.fits"
+   f125w: "hlsp_clash_hst_wfc3ir_rxj1347_f125w_v1_flg.fits"
+   f140w: "hlsp_clash_hst_wfc3ir_rxj1347_f140w_v1_flg.fits"
+   f160w: "hlsp_clash_hst_wfc3ir_rxj1347_f160w_v1_flg.fits"
+   wfc3ir: "hlsp_clash_hst_wfc3ir_rxj1347_total_v1_flg.fits"
+zeropoints:
+   # calculated from header keywords PHOTFLAM and PHOTPLAM
+   f435w: 25.648
+   f475w: 26.071
+   f606w: 26.481
+   f625w: 25.897
+   f775w: 25.655
+   f814w: 25.949
+   f850lp: 24.857
+   f105w: 26.261
+   f110w: 26.815
+   f125w: 26.237
+   f140w: 26.455
+   f160w: 25.946
+   wfc3ir: 26.000  # fiducial value
+ebmv_mean: 0.0625
+ext_coeff:
+   f435w: 4.117
+   f475w: 3.724
+   f606w: 2.929
+   f625w: 2.671
+   f775w: 2.018
+   f814w: 1.822
+   f850lp: 1.473
+   f105w: 1.015
+   f110w: 0.876
+   f125w: 0.757
+   f140w: 0.609
+   f160w: 0.470
+   wfc3ir: 0.
+effgain:  # effective gain = ccdgain * exptime
+   f435w: 8136.000
+   f475w: 21120.000
+   f606w: 7756.000
+   f625w: 7696.000
+   f775w: 8192.000
+   f814w: 29360.000
+   f850lp: 21120.000
+   f105w: 6286.675
+   f110w: 12566.053
+   f125w: 6036.672
+   f140w: 5779.340
+   f160w: 19352.725
+   wfc3ir: 1.0
+skyrms_factor:
+   f435w:  1.205
+   f475w:  1.177
+   f606w:  1.214
+   f625w:  1.299
+   f775w:  1.164
+   f814w:  1.350
+   f850lp: 1.141
+   f105w:  1.954
+   f110w:  1.896
+   f125w:  1.705
+   f140w:  1.860
+   f160w:  2.019
+   wfc3ir: 1.0

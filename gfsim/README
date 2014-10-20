@@ -1,0 +1,9 @@
+A new, object-oriented version for running GALFIT simulations with artificial
+objects. Meant to replace run_sim_multiband_galfit, and part of it should be
+branched out for SExtractor-only simulations.
+
+Will contain the following files:
+- prep_gfsim: prepare images for GAFLIT simulations if necessary (e.g., when
+  differnt pixel scales are used for detection and measurement images)
+- run_gfsim: driver script that reads in the parameter file and runs the 
+  simulations

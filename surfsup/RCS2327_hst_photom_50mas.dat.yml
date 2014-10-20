@@ -1,0 +1,61 @@
+cluster_name: "RCS2327"
+image_dir: "/Users/khuang/SurfsUp/RCS2327/hst"
+homedir: "/Users/khuang/Dropbox/Research/surfsup_dropbox/RCS2327/hst"
+merged_table: "hst_rcs2327_50mas_merged.fits"
+sexfile: "f160w_rcs2327_50mas.sex"
+filters: ['f435w', 'f814w', 'f098m', 'f125w', 'f160w']
+detectband: 'f160w'
+scale: 0.05   # pixel scale in arcsec; note that the mosaics are NOT north-up
+drz_images:
+   f435w: 'F435W_drz_sci.fits'
+   f814w: 'F814W_drz_sci.fits'
+   f098m: 'F098M_drz_sci.fits'
+   f125w: 'F125W_drz_sci.fits'
+   f160w: 'F160W_drz_sci.fits'
+wht_images: 
+   f435w: 'F435W_drz_weight.fits'
+   f814w: 'F814W_drz_weight.fits'
+   f098m: 'F098M_drz_weight.fits'
+   f125w: 'F125W_drz_weight.fits'
+   f160w: 'F160W_drz_weight.fits'
+flg_images:
+   f435w: 'f435w_rcs2327_flg.fits'
+   f814w: 'f814w_rcs2327_flg.fits'
+   f098m: 'f098m_rcs2327_flg.fits'
+   f125w: 'f125w_rcs2327_flg.fits'
+   f160w: 'f160w_rcs2327_flg.fits'
+zeropoints:   # within an infinite aperture; same as calculated from PHOTFLAM and PHOTPLAM
+   # corrected for extinction! 
+   f435w: 25.456
+   f814w: 25.861
+   f098m: 25.619
+   f125w: 26.194
+   f160w: 25.924
+   # f435w: 25.651
+   # f814w: 25.947
+   # f098m: 25.667
+   # f125w: 26.230
+   # f160w: 25.946
+   #f098m: 25.5041    # within 0.4 arcsec aperture
+   #f125w: 26.0449    # within 0.4 arcsec aperture
+   #f160w: 25.7551    # within 0.4 arcsec aperture
+ext_coeff: 
+   f435w: 4.117
+   f814w: 1.822
+   f098m: 1.015
+   f125w: 0.757 
+   f160w: 0.47
+ebmv_mean: 0.0474   # +/- 0.0009; for RCS2-2327-0204
+apcor:
+   f435w: 0.
+   f814w: 0.06
+   f098m: 0.08
+   f125w: 0.19
+   f160w: 0.18
+effgain:  # effective gain; = ccdgain * exptime
+   f435w: 8416.0
+   f814w: 11252.0
+   f098m: 17088.1
+   f125w: 16588.1
+   f160w: 23117.5
+   

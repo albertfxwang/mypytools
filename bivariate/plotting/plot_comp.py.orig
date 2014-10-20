@@ -1,0 +1,550 @@
+#!/usr/bin/env python
+
+from numpy import *
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import cPickle
+import dropout_sel as ds
+from pygoods import *
+
+cmap_hot = mpl.cm.hot
+cmap_jet = mpl.cm.jet
+cmap_hsv = mpl.cm.hsv
+
+def sexcompmap(c, maglim, logrelim, magbw, logrebw):
+	# the SExtractor detection completeness in zmag-logRe bins
+	# calculated from the dropout-simulations catalog (NOT the GALFIT simulations)
+	amag = arange(maglim[0], maglim[1]+magbw, magbw)
+	alogre = arange(logrelim[0], logrelim[1]+logrebw, logrebw)
+   # use histogram2d
+	mag_input = c.z_magin
+	logre_input = log10(c.re_input)
+	mag_detect = compress(c.detect, mag_input)
+	logre_detect = compress(c.detect, logre_input)
+	N_input = histogram2d(mag_input, logre_input, bins=[amag,alogre])[0]
+	N_detect = histogram2d(mag_detect, logre_detect, bins=[amag,alogre])[0]
+	compgrid = where(N_input>0, N_detect.astype('float')/N_input.astype('float'), 0.)
+	#compgrid = zeros((len(amag), len(alogre)), 'float')
+	#for i in range(len(amag)):
+	#   for j in range(len(alogre)):
+	#      crit = (c.magin >= amag[i]) & (c.magin < (amag[i] + magbw))
+	#      crit = crit & (log10(c.rein) >= alogre[j]) & (log10(c.rein) < (alogre[j] + logrebw))
+	#      adetect = compress(crit, c.recovered_se)
+	#      n_input = sum(crit)
+	#      n_detect = sum(adetect)
+	#      if n_input > 0:
+	#         compgrid[i, j] = float(n_detect) / float(n_input)
+	return compgrid
+
+
+def ninputmap(c, maglim, logrelim, magbw, logrebw):
+   amag = arange(maglim[0], maglim[1], magbw)
+   alogre = arange(logrelim[0], logrelim[1], logrebw)
+   numgrid = zeros((len(amag), len(alogre)), 'float')
+   for i in range(len(amag)):
+      for j in range(len(alogre)):
+         crit = (c.magin >= amag[i]) & (c.magin < (amag[i] + magbw))
+         crit = crit & (log10(c.rein) >= alogre[j]) & (log10(c.rein) < (alogre[j] + logrebw))
+         n_input = sum(crit)
+         numgrid[i, j] = n_input
+   return numgrid
+
+
+def gfcompmap(c, maglim, logrelim, magbw, logrebw):
+   amag = arange(maglim[0], maglim[1], magbw)
+   alogre = arange(logrelim[0], logrelim[1], logrebw)
+   compgrid = zeros((len(amag), len(alogre)), 'float')
+   for i in range(len(amag)):
+      for j in range(len(alogre)):
+         crit = (c.magin >= amag[i]) & (c.magin < (amag[i] + magbw))
+         crit = crit & (log10(c.rein) >= alogre[j]) & (log10(c.rein) < (alogre[j] + logrebw))
+         adetect = compress(crit, c.recovered_galfit)
+         n_input = sum(crit)
+         n_detect = sum(adetect)
+         if n_input > 0:
+            compgrid[i, j] = float(n_detect) / float(n_input)
+   return compgrid
+
+
+def gfcompmap2(kgrid):
+   # plot the completeness map of the GALFIT transfer function kernel grid
+   npix = (kgrid.limits[:,1] - kgrid.limits[:,0]) / kgrid.pixdx 
+   npix = npix.astype('int')
+   compgrid = zeros(npix)
+   for k in kgrid.kernels:
+      kern = kgrid.kernels[k]
+      i0 = (kern.x0_bin - kgrid.limits[:,0]) / kgrid.pixdx
+      i0 = around(i0).astype('int')
+      i1 = (kern.x1_bin - kgrid.limits[:,0]) / kgrid.pixdx
+      i1 = around(i1).astype('int')
+      compgrid[i0[0]:i1[0], i0[1]:i1[1]] = kern.completeness
+   compgrid = maximum(compgrid, 0.)
+
+   return compgrid
+
+
+def gfnummap(kgrid):
+   # returns the input numbers of each bin
+   npix = (kgrid.limits[:,1] - kgrid.limits[:,0]) / kgrid.pixdx 
+   npix = npix.astype('int')
+   numgrid = zeros(npix)
+   for k in kgrid.kernels:
+      kern = kgrid.kernels[k]
+      i0 = (kern.x0_bin - kgrid.limits[:,0]) / kgrid.pixdx
+      i0 = around(i0).astype('int')
+      i1 = (kern.x1_bin - kgrid.limits[:,0]) / kgrid.pixdx
+      i1 = around(i1).astype('int')
+      numgrid[i0[0]:i1[0], i0[1]:i1[1]] = kern.ninput_bin
+
+   return numgrid
+
+
+def dkgrid_comp(dkgrid):
+   # returns the completeness map
+   nx = (dkgrid.M1 - dkgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (dkgrid.logR1 - dkgrid.logR0) / 0.02
+   ny = int(round(ny))
+   compgrid = zeros((nx, ny), 'float')
+   
+   for k in dkgrid.dkcorr:
+      kern = dkgrid.dkcorr[k]
+      ix0 = (kern.M0 - dkgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - dkgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - dkgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - dkgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      compgrid[ix0:ix1,iy0:iy1] = kern.completeness
+
+   return compgrid
+
+
+def dkgrid_detcomp(c, dkgrid):
+   nx = (dkgrid.M1 - dkgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (dkgrid.logR1 - dkgrid.logR0) / 0.02
+   ny = int(round(ny))
+   compgrid = zeros((nx, ny), 'float')
+   zcrit = ((c.z_input >= dkgrid.z0) & (c.z_input < dkgrid.z1))
+
+   for k in dkgrid.dkcorr:
+      kern = dkgrid.dkcorr[k]
+      ix0 = (kern.M0 - dkgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - dkgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - dkgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - dkgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      withinbin = ((c.m1500_input >= kern.M0) & (c.m1500_input < kern.M1))
+      withinbin = withinbin & ((log10(c.re_input)>=kern.logR0)&(log10(c.re_input)<kern.logR1))
+      ndetect = sum(withinbin & c.detect & zcrit)
+      ntarget = sum(withinbin & zcrit)
+      if ntarget > 0:
+         comp = float(ndetect)/float(ntarget)
+         compgrid[ix0:ix1,iy0:iy1] = comp
+   return compgrid
+      
+
+def dkgrid_selcomp(c, dkgrid, zmagcut=26.5):
+   nx = (dkgrid.M1 - dkgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (dkgrid.logR1 - dkgrid.logR0) / 0.02
+   ny = int(round(ny))
+   compgrid = zeros((nx, ny), 'float')
+   zcrit = ((c.z_input >= dkgrid.z0) & (c.z_input < dkgrid.z1))
+   dropcrit = ds.bdrops_sel(c, zmagcut=zmagcut)[0]
+
+   for k in dkgrid.dkcorr:
+      kern = dkgrid.dkcorr[k]
+      ix0 = (kern.M0 - dkgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - dkgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - dkgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - dkgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      withinbin = ((c.m1500_input >= kern.M0) & (c.m1500_input < kern.M1))
+      withinbin = withinbin & ((log10(c.re_input)>=kern.logR0)&(log10(c.re_input)<kern.logR1))
+      ndetect = sum(withinbin & c.detect & zcrit)
+      nselect = sum(withinbin & zcrit & dropcrit)
+      if ndetect > 0:
+         compgrid[ix0:ix1,iy0:iy1] = float(nselect)/float(ndetect)
+   return compgrid
+
+
+def dkgrid_ntarget(dkgrid):
+   # returns the ntarget map
+   nx = (dkgrid.M1 - dkgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (dkgrid.logR1 - dkgrid.logR0) / 0.02
+   ny = int(round(ny))
+   numgrid = zeros((nx, ny), 'float')
+
+   for k in dkgrid.dkcorr:
+      kern = dkgrid.dkcorr[k]
+      ix0 = (kern.M0 - dkgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - dkgrid.M1) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - dkgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - dkgrid.logR1) / 0.02
+      iy1 = int(round(iy1))
+      numgrid[ix0:ix1,iy0:iy1] = kern.n_target
+
+   return numgrid
+
+
+def zdgrid_ninput(zdgrid):
+   # returns the ninput map
+   nx = (zdgrid.M1 - zdgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (zdgrid.logR1 - zdgrid.logR0) / 0.02
+   ny = int(round(ny))
+   numgrid = zeros((nx, ny), 'float')
+
+   for zd in zdgrid.zdist:
+      kern = zdgrid.zdist[zd]
+      ix0 = (kern.M0 - zdgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - zdgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - zdgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - zdgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      numgrid[ix0:ix1,iy0:iy1] = sum(kern.ninput)
+
+   return numgrid
+
+
+def zdgrid_detcomp(zdgrid):
+   nx = (zdgrid.M1 - zdgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (zdgrid.logR1 - zdgrid.logR0) / 0.02
+   ny = int(round(ny))
+   compgrid = zeros((nx, ny), 'float')
+
+   for zd in zdgrid.zdist:
+      kern = zdgrid.zdist[zd]
+      ix0 = (kern.M0 - zdgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - zdgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - zdgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - zdgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      detcomp = float(sum(kern.ndetect)) / float(sum(kern.ninput))
+      compgrid[ix0:ix1,iy0:iy1] = detcomp
+
+   return compgrid
+
+
+def zdgrid_selcomp(zdgrid):
+   nx = (zdgrid.M1 - zdgrid.M0) / 0.02
+   nx = int(round(nx))
+   ny = (zdgrid.logR1 - zdgrid.logR0) / 0.02
+   ny = int(round(ny))
+   compgrid = zeros((nx, ny), 'float')
+
+   for zd in zdgrid.zdist:
+      kern = zdgrid.zdist[zd]
+      ix0 = (kern.M0 - zdgrid.M0) / 0.02
+      ix0 = int(round(ix0))
+      ix1 = (kern.M1 - zdgrid.M0) / 0.02
+      ix1 = int(round(ix1))
+      iy0 = (kern.logR0 - zdgrid.logR0) / 0.02
+      iy0 = int(round(iy0))
+      iy1 = (kern.logR1 - zdgrid.logR0) / 0.02
+      iy1 = int(round(iy1))
+      if sum(kern.ndetect)>0:
+         detcomp = float(sum(kern.nselect)) / float(sum(kern.ndetect))
+         compgrid[ix0:ix1,iy0:iy1] = detcomp
+
+   return compgrid
+
+
+def read_dkgrid(dkgridfile):
+   f = open(dkgridfile)
+   dkgrid = cPickle.load(f)
+   f.close()
+   return dkgrid
+
+
+def bdrops_comp_appmag(simcat,zmagarr=arange(22,26.6,0.1),zmagcut=26.5):
+   # plot completeness as a function of z-band apparent magnitude, as is often done
+   # in the literature
+   c = sextractor(simcat)
+   zlo = 3.6; zhi = 4.4
+   bdropscrit = ds.bdrops_sel(c,zmagcut=zmagcut)[0]
+   completeness = zeros(len(zmagarr))
+   zcrit = (c.z_input >= zlo) & (c.z_input < zhi)
+   for i in range(len(zmagarr)):
+      zmag = zmagarr[i]
+      withinbin = (c.z_magin>=zmag) & (c.z_magin<zmag+0.1)
+      detect = (c.detect)
+      ndet = sum(detect & withinbin & zcrit)
+      nsel = sum(bdropscrit & withinbin & zcrit)
+      ntarget = sum(withinbin & zcrit)
+      completeness[i] = float(nsel) / float(ndet)  # dropout selection completeness
+      # among sources ALREADY DETECTED
+      #completeness[i] = float(ndet) / float(ntarget)
+   return completeness
+
+
+def vdrops_comp_appmag(c,zmagarr=arange(22,26.6,0.1),zmagcut=26.5,bstonlim=2.0):
+   # plot completeness as a function of z-band apparent magnitude, as is often done
+   # in the literature
+   #c = sextractor(simcat)
+   zlo = 4.6; zhi = 5.6
+   vdropscrit = ds.vdrops_sel(c,zmagcut=zmagcut,bstonlim=bstonlim)[0]
+   completeness = zeros(len(zmagarr))
+   zcrit = (c.z_input >= zlo) & (c.z_input < zhi)
+   for i in range(len(zmagarr)):
+      zmag = zmagarr[i]
+      withinbin = (c.z_magin>=zmag) & (c.z_magin<zmag+0.1)
+      detect = (c.detect)
+      ndet = sum(detect & withinbin & zcrit)
+      nsel = sum(vdropscrit & withinbin & zcrit)
+      ntarget = sum(withinbin & zcrit)
+      completeness[i] = float(nsel) / float(ndet)  # dropout selection completeness
+      # among sources ALREADY DETECTED
+      #completeness[i] = float(ndet) / float(ntarget)
+   return completeness
+
+
+def bdrops_plot_zdist(c1,c2):
+   # plot the redshift distribution of the selected B-drops from simulation
+   # c1: GOODS simulation catalog; c2: UDF sim cat
+   bdropscrit1 = ds.bdrops_sel(c1,zmagcut=26.5)[0]
+   bdropscrit2 = ds.bdrops_sel(c2,zmagcut=28.5)[0]
+   z_sel1 = compress(bdropscrit1, c1.z_input)
+   z_sel2 = compress(bdropscrit2, c2.z_input)
+   plt.hist(z_sel1, arange(2.0, 6.0, 0.1), alpha=0.3, label='GOODS')
+   plt.hist(z_sel2, arange(2.0, 6.0, 0.1), alpha=0.3, label='UDF')
+   plt.legend(loc='upper left')
+   return 0
+
+
+def vdrops_plot_zdist(c1,c2,bstonlim=100):
+   vdropscrit1 = ds.vdrops_sel(c1, zmagcut=26.5, bstonlim=bstonlim)[0]
+   vdropscrit2 = ds.vdrops_sel(c2, zmagcut=28.5, bstonlim=bstonlim)[0]
+   z_sel1 = compress(vdropscrit1, c1.z_input)
+   z_sel2 = compress(vdropscrit2, c2.z_input)
+   plt.hist(z_sel1, arange(2.0, 6.0, 0.1), alpha=0.3, label='GOODS')
+   plt.hist(z_sel2, arange(2.0, 6.0, 0.1), alpha=0.3, label='UDF')
+   plt.legend(loc='upper left')
+   return 0
+
+
+def bdrops_plot_zcomp(c1,c2,zarr=arange(2.5,6.0,0.1),dz=0.1):
+   # plot the completeness as a function of redshift of the selected B-drops from simulation
+   # by definition, completeness = # of selected sources / # of input sources
+   # so it includes SE detection completeness as well
+   bdropscrit1 = ds.bdrops_sel(c1,zmagcut=26.5)[0]
+   bdropscrit2 = ds.bdrops_sel(c2,zmagcut=28.5)[0]
+   comp1 = zeros(len(zarr))
+   comp2 = zeros(len(zarr))
+   Mcrit1 = (c1.m1500_input <= -20.)
+   Mcrit2 = (c2.m1500_input <= -18.)
+   for i in range(len(zarr)):
+      zwithinbin1 = (c1.z_input >= zarr[i]) & (c1.z_input < (zarr[i] + dz))
+      zwithinbin2 = (c2.z_input >= zarr[i]) & (c2.z_input < (zarr[i] + dz))
+      ntarget1 = sum(zwithinbin1 & Mcrit1)
+      nsel1 = sum(zwithinbin1 & bdropscrit1 & Mcrit1)
+      ntarget2 = sum(zwithinbin2 & Mcrit2)
+      nsel2 = sum(zwithinbin2 & bdropscrit2 & Mcrit2)
+      comp1[i] = float(nsel1) / float(ntarget1)
+      comp2[i] = float(nsel2) / float(ntarget2)
+   plt.bar(zarr, comp1, width=dz, alpha=0.5, color='blue', label='GOODS')
+   plt.bar(zarr, comp2, width=dz, alpha=0.5, color='green', label='UDF')
+   return 0
+
+
+def vdrops_plot_zcomp(c1,c2,zarr=arange(2.5,6.0,0.1),dz=0.1,bstonlim=100.):
+   vdropscrit1 = ds.vdrops_sel(c1, zmagcut=26.5, bstonlim=bstonlim)[0]
+   vdropscrit2 = ds.vdrops_sel(c2, zmagcut=28.5, bstonlim=bstonlim)[0]
+   comp1 = zeros(len(zarr))
+   comp2 = zeros(len(zarr))
+   Mcrit1 = (c1.m1500_input <= -20.)
+   Mcrit2 = (c2.m1500_input <= -18.)
+   for i in range(len(zarr)):
+      zwithinbin1 = (c1.z_input >= zarr[i]) & (c1.z_input < (zarr[i] + dz))
+      zwithinbin2 = (c2.z_input >= zarr[i]) & (c2.z_input < (zarr[i] + dz))
+      ntarget1 = sum(zwithinbin1 & Mcrit1)
+      nsel1 = sum(zwithinbin1 & vdropscrit1 & Mcrit1)
+      ntarget2 = sum(zwithinbin2 & Mcrit2)
+      nsel2 = sum(zwithinbin2 & vdropscrit2 & Mcrit2)
+      comp1[i] = float(nsel1) / float(ntarget1)
+      comp2[i] = float(nsel2) / float(ntarget2)
+   plt.bar(zarr, comp1, width=dz, alpha=0.5, color='red', label='GOODS')
+   plt.bar(zarr, comp2, width=dz, alpha=0.5, color='orange', label='UDF')
+   return 0
+
+
+def show_galfit_qf_comp(c_sim, c_drop, limits=array([[22.0, 26.5], [-1.0, 2.0]]), \
+   maglim=26.5, chisqnulim=0.4, cmap=mpl.cm.gray):
+   # calculate the fraction of sources thrown away due to poor GALFIT quality
+   # first, only pick the bins that cover the real dropouts
+   fig = plt.figure(figsize=(7,10))
+   palette = plt.cm.gray
+   palette.set_over('cyan', 1.0)
+   palette.set_under('red', 1.0)
+   palette.set_bad('black', 1.0)
+   sp1 = fig.add_axes([0.1,0.65,0.8,0.25])
+   sp2 = fig.add_axes([0.1,0.375,0.8,0.25])
+   sp3 = fig.add_axes([0.1,0.10,0.8,0.25])
+   bw = array([0.5, 0.2])
+   nbins = (limits[:,1] - limits[:,0]) / bw
+   nbins = nbins.astype('int')
+   mlims = arange(limits[0,0], limits[0,1]+bw[0], bw[0])
+   rlims = arange(limits[1,0], limits[1,1]+bw[1], bw[1])
+   binedge = [mlims, rlims]
+   qf = (c_drop.reout_err/c_drop.reout<=0.6)&(c_drop.chisqnu<=chisqnulim)&(c_drop.magout<=maglim)
+   #ndrops = zeros(nbins, 'int')
+   ndrops_tot = histogram2d(c_drop.magout, log10(c_drop.reout), bins=binedge)[0]
+   ndrops_qf  = histogram2d(compress(qf,c_drop.magout), compress(qf,log10(c_drop.reout)),
+      bins=binedge)[0]
+   #ndrops_tot = maximum(ndrops_tot, 1)
+   comp_qf = ndrops_qf.astype('float') / maximum(ndrops_tot.astype('float'), 1.)
+   nsim_tot = histogram2d(compress(c_sim.recovered_galfit,c_sim.magout),\
+      compress(c_sim.recovered_galfit,log10(c_sim.reout)), bins=binedge)[0]
+   nsim_tot = maximum(nsim_tot, 1)
+   qf_sim = (c_sim.reouterr/c_sim.reout<=0.6)&(c_sim.chisqnu<=chisqnulim)&(c_sim.recovered_galfit==1)
+   nsim_qf  = histogram2d(compress(qf_sim,c_sim.magout),compress(qf_sim,log10(c_sim.reout)),
+      bins=binedge)[0]
+   #place(nsim_qf, ndrops_tot<1, 0)
+   comp_sim_qf = nsim_qf.astype('float') / nsim_tot.astype('float')
+
+   x1 = showmap(comp_qf, limits=limits, cmap=cmap, newfig=False, fig=fig, ax=sp1,
+      vrange=[0.,1.])
+   #x1[2].set_xlabel('GALFIT mag_out')
+   x1[2].set_ylabel('log10(Re_out) [pixel]')
+   x1[2].set_xticklabels([])  # unset the tick labels
+   x1[3].set_ticks([0.0,0.25,0.5,0.75,1.0])
+   x2 = showmap(comp_sim_qf, limits=limits, cmap=cmap, newfig=False, fig=fig, ax=sp2,
+      vrange=[0.,1.])
+   #x2[2].set_xlabel('GALFIT mag_out')
+   x2[2].set_ylabel('log10(Re_out) [pixel]')
+   x2[2].set_xticklabels([])
+   x2[3].set_ticks([0.0,0.25,0.5,0.75,1.0])
+   comp_sim_frac = comp_qf / maximum(comp_sim_qf, 1.e-5)
+   putmask(comp_sim_frac, comp_qf<1.e-5, 0.)
+   comp_sim_frac_masked = ma.masked_where(comp_sim_frac<0.05, comp_sim_frac)
+   print max(comp_sim_frac.ravel()), min(comp_sim_frac.ravel())
+   x3 = showmap(comp_sim_frac_masked, limits=limits, cmap=palette, newfig=False, fig=fig,
+      ax=sp3, vrange=[0.8,1.2], mask=comp_sim_frac_masked.mask, cbar_extend='both')
+   x3[2].set_xlabel('GALFIT mag_out')
+   x3[2].set_ylabel('log10(Re_out) [pixel]')
+   x3[3].set_ticks([0.8,1.0,1.2])
+   
+   return x1, x2, x3
+
+
+def showmap(marray, limits, mags=[], logres=[], bw=array([0.5,0.2]), 
+   dtype='float', vrange=None, mask=None,
+   newfig=True, fig=None, ax=None, cmap=cmap_hot, cbar_extend='neither'):
+   # marray -- the 2-D array to be shown
+   # limits -- a 2x2 array of the upper and lower limits of marray; limits=array([[xlo,xhi],[ylo,yhi]])
+   # bw -- bin widths in (x, y) dimension (an array of length 2)
+   # dtype -- data type of marray
+   nbins = (limits[:,1] - limits[:,0]) / bw
+   nbins = nbins.astype('int')
+   if not (shape(marray) == nbins).all():
+      print "shape of input array is [%d, %d], incompatible with number of bins [%d, %d]" % (
+         shape(marray)[0], shape(marray)[1], nbins[0], nbins[1])
+      raise ValueError
+   # calculate the values at bin edges
+   xbins = arange(limits[0][0], limits[0][1], bw[0])
+   ybins = arange(limits[1][0], limits[1][1], bw[1])
+   #npix = (limits[:,1] - limits[:,0]) / pixdx
+   #xticks = arange(0, npix[0]) #; xticks = xticks.astype('int')
+   #yticks = arange(0, npix[1]) #; yticks = yticks.astype('int')
+   #xtickvals = limits[0][0] + xticks
+   #ytickvals = limits[1][0] + yticks
+   #print len(xticks), len(xtickvals), len(yticks), len(ytickvals)
+   #print yticks, ytickvals
+   xticklabels = []; yticklabels = []
+   for k in range(len(xbins)):
+      xticklabels += ['%.1f' % xbins[k]]
+   for k in range(len(ybins)):
+      yticklabels += ['%.1f' % ybins[k]]
+   #maparray = zeros(npix, dtype)
+   if mask != None:
+      masked = zeros(npix, 'bool')
+   for i in range(nbins[0]):
+      for j in range(nbins[1]):
+         ix0 = (xbins[i] - limits[0][0]) / pixdx[0]; ix0 = int(ix0)
+         ix1 = (xbins[i] + bw[0] - limits[0][0]) / pixdx[0]; ix1 = int(ix1)
+         iy0 = (ybins[j] - limits[1][0]) / pixdx[1]; iy0 = int(iy0)
+         iy1 = (ybins[j] + bw[1] - limits[1][0]) / pixdx[1]; iy1 = int(iy1)
+         maparray[ix0:ix1,iy0:iy1] = marray[i,j]
+         if mask != None:
+            masked[ix0:ix1,iy0:iy1] = mask[i,j]
+            
+   if newfig == True:
+      fig = plt.figure()
+      ax = fig.add_subplot(111)
+   if vrange==None:
+      vrange=[min(maparray.ravel()), max(maparray.ravel())]
+   if mask != None:
+      maparray = ma.masked_where(masked==True, maparray)
+   cax = ax.imshow(maparray.swapaxes(0,1), origin='lower', vmin=vrange[0],
+      vmax=vrange[1], cmap=cmap)
+   cbar = fig.colorbar(cax, ax=ax, extend=cbar_extend)
+   ax.set_xticks(xticks); ax.set_xticklabels(xticklabels)
+   ax.set_yticks(yticks); ax.set_yticklabels(yticklabels)
+   # plot the points overlaid on top
+   if len(mags):
+      xmags = (mags - limits[0][0]) / pixdx[0]
+      ylogres = (logres - limits[1][0]) / pixdx[1]
+      ax.plot(xmags, ylogres, 'o', mec='white', mfc='green', ms=3)
+      ax.set_xlim(0, npix[0]); ax.set_ylim(0, npix[1])
+   return maparray, fig, ax, cbar
+
+def plot_det_comp(c, limits, bw=[0.5,0.2], pixdx=array([0.02,0.02])):
+	# calculate the SExtractor detection completeness in z-band
+	nbins = (limits[:,1]-limits[:,0]) / bw
+	nbins = nbins.astype('int')
+	m_within = (c.z_magin>=limits[0,0]) & (c.z_magin<limits[0,1])
+	r_within = (log10(c.re_input)>=limits[1,0]) & (log10(c.re_input)<limits[1,1])
+	within = m_within & r_within
+	ninput_bins = histogram2d(compress(within,c.z_magin), 
+		compress(within,log10(c.re_input)), bins=nbins)[0]
+	#print ninput_bins
+	ndet_bins = histogram2d(compress((c.detect==1)&within,c.z_magin),
+		compress((c.detect==1)&within,log10(c.re_input)), 
+		bins=nbins)[0]
+	print ndet_bins
+	det_comp = where(ninput_bins>0, 
+		array(ndet_bins).astype('float') / array(ninput_bins).astype('float'),
+		0.)
+	showmap(det_comp, limits, bw=bw, pixdx=pixdx)
+	return det_comp
+	
+def plot_gf_det_comp(c, limits, bw=array([0.5,0.2]), pixdx=array([0.02,0.02])):
+	# calculate the SExtractor detection completeness in z-band
+	nbins = (limits[:,1]-limits[:,0]) / bw
+	nbins = nbins.astype('int')
+	m_within = (c.magin>=limits[0,0]) & (c.magin<limits[0,1])
+	r_within = (log10(c.rein)>=limits[1,0]) & (log10(c.rein)<limits[1,1])
+	within = m_within & r_within
+	ninput_bins = histogram2d(compress(within,c.magin), 
+		compress(within,log10(c.rein)), bins=nbins)[0]
+	#print ninput_bins
+	ndet_bins = histogram2d(compress((c.recovered_se==1)&within,c.magin),
+		compress((c.recovered_se==1)&within,log10(c.rein)), 
+		bins=nbins)[0]
+	print ndet_bins
+	det_comp = where(ninput_bins>0, 
+		array(ndet_bins).astype('float') / array(ninput_bins).astype('float'),
+		0.)
+	showmap(det_comp, limits, bw=bw, pixdx=pixdx)
+	return det_comp

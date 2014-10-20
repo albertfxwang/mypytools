@@ -1,0 +1,47 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module coords</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>coords</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/devel/goods16/ferguson/junk/doctmp/coords.py">/devel/goods16/ferguson/junk/doctmp/coords.py</a></font></td></tr></table>
+    <p><tt>#&nbsp;H.&nbsp;Ferguson&nbsp;7/12/05</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-degdms"><strong>degdms</strong></a>(ideg)</dt><dd><tt>#&nbsp;H.&nbsp;Ferguson&nbsp;7/12/05</tt></dd></dl>
+ <dl><dt><a name="-deghms"><strong>deghms</strong></a>(ideg)</dt></dl>
+ <dl><dt><a name="-parsecoo"><strong>parsecoo</strong></a>(coostring, inhours<font color="#909090">=False</font>)</dt><dd><tt>Convert&nbsp;an&nbsp;coordinate&nbsp;string&nbsp;to&nbsp;decimal&nbsp;degrees.&nbsp;Accept<br>
+the&nbsp;input&nbsp;in&nbsp;any&nbsp;one&nbsp;of&nbsp;the&nbsp;following&nbsp;formats:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hhh:mm:ss.s&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;where&nbsp;hhh&nbsp;is&nbsp;either&nbsp;hours&nbsp;or&nbsp;degrees<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hhh:mm.m&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;can&nbsp;include&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hhh&nbsp;mm&nbsp;ss.s<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hhh&nbsp;mm.m<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ddd.ddddd&nbsp;&nbsp;--&nbsp;assumed&nbsp;to&nbsp;be&nbsp;in&nbsp;degrees,&nbsp;not&nbsp;hours<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;###h##m##.###s&nbsp;--&nbsp;with&nbsp;or&nbsp;without&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;###d##m##.###s&nbsp;--&nbsp;with&nbsp;or&nbsp;without&nbsp;whitespace<br>
+If&nbsp;inhours&nbsp;is&nbsp;True,&nbsp;multiply&nbsp;result&nbsp;by&nbsp;15.&nbsp;(hours-&gt;deg)</tt></dd></dl>
+ <dl><dt><a name="-parsecoords"><strong>parsecoords</strong></a>(coostring)</dt><dd><tt>Convert&nbsp;coordinate&nbsp;string&nbsp;to&nbsp;decimal&nbsp;degrees.&nbsp;Accept<br>
+the&nbsp;input&nbsp;in&nbsp;any&nbsp;one&nbsp;of&nbsp;the&nbsp;following&nbsp;formats:<br>
+hhh:mm:ss.s&nbsp;ddd:mm:ss.s&nbsp;&nbsp;--&nbsp;whitespace&nbsp;allowed,&nbsp;as&nbsp;long&nbsp;as&nbsp;consistent<br>
+hhh:mm:ss.s&nbsp;ddd:mm:ss.s&nbsp;&nbsp;<br>
+hhh&nbsp;mm&nbsp;ss.s&nbsp;ddd&nbsp;mm&nbsp;ss.s<br>
+hhh:mm.m&nbsp;ddd:mm.m<br>
+hhh&nbsp;mm.m&nbsp;ddd&nbsp;mm.m<br>
+ddd.ddddd&nbsp;ddd.ddddd&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;ra,dec&nbsp;both&nbsp;assumed&nbsp;to&nbsp;be&nbsp;decimal&nbsp;deg<br>
+&nbsp;<br>
+also&nbsp;converts:<br>
+12h25m32.52s&nbsp;25d32m25.2s&nbsp;--&nbsp;with&nbsp;or&nbsp;without&nbsp;whitespace</tt></dd></dl>
+ <dl><dt><a name="-parsedec"><strong>parsedec</strong></a>(decstring)</dt></dl>
+ <dl><dt><a name="-parsera"><strong>parsera</strong></a>(rastring)</dt></dl>
+ <dl><dt><a name="-to_sexagesimal"><strong>to_sexagesimal</strong></a>(ra, dec)</dt></dl>
+</td></tr></table>
+</body></html>
