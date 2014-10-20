@@ -1,20 +1,2 @@
-This is a bunch of python utilities written for the GOODS project,
-mostly by H. Ferguson (ferguson@stsci.edu) from 2002-2010. You are
-free to use these as you see fit.
-
-angsep.py        - compute the angular separation between two sources
-coords.py        - various coordinate utilities
-cosmo.py         - some basicl cosmological calculations
-doc/             - some documentation
-__init__.py      - initialization
-kennicutt.py     - Kennicutt law
-image_moments.py - Computes various image moments a la SExtractor
-iterstat.py      - Simple mean, stdev with iterative sigma clipping
-match.py         - brute force coordinate matching. Slow but it works 
-numprint.py      - formatted  printing of numpy arrays. 
-parseconfig.py   - read in SExtractor configuration files
-readcol.py       - read in column-oriented files 
-setup.py         - distribution utility
-sextutils.py	 - Routine for reading & writing sextractor files
-iterstat.py      - Iterative sigma-clipped mean & standard deviation
-imutil.py        - Utilities for dealing with images
+Here are my python codes I have written over the years for my own astronomy
+research purposes. 
