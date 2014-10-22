@@ -156,13 +156,13 @@ def write_phys_prop(specfiles, statFile, physfile, tau=1.e9):
       SFR = s2.sfr[k]
       Z = 10.**(s2.logz[k])
       # first, write a dummy line
-      ff.write("%d  %d " % (i, j))
-      ff.write("%.6E  %.6E  %.6E  " % (-1, -99, -99))
-      ff.write("%.6E  %.6E  %.6E  " % (-99, -99, -99))
-      ff.write("%.6E  %.6E  %.6E  " % (-99, -99, tau))
-      ff.write("%.6E  " % -99.0)
-      ff.write('\n')
-      i += 1
+      # ff.write("%d  %d " % (i, j))
+      # ff.write("%.6E  %.6E  %.6E  " % (-1, -99, -99))
+      # ff.write("%.6E  %.6E  %.6E  " % (-99, -99, -99))
+      # ff.write("%.6E  %.6E  %.6E  " % (-99, -99, tau))
+      # ff.write("%.6E  " % -99.0)
+      # ff.write('\n')
+      # i += 1
       # Now write the real stuff
       ff.write("%d  %d  " % (i, j))
       ff.write("%.6E  %.6E  %.6E  " % (age, np.log10(LUV), np.log10(LR)))
