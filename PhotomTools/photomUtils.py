@@ -46,4 +46,13 @@ def sn2magerr(sn):
       sn = np.array(sn)
       return np.where(sn > 0, 2.5 * np.log10(1. + 1. / sn), -1.0)
 
+def calcNsigMag(mag, magerr, N=1.0):
+   # Given magnitude & magnitude error, calculate the expected 1-sigma 
+   # magnitude. An input magnitude > 90 means it's undetected and it will 
+   # just return the magnitude error
+   if mag > 90:
+      return magerr
+   else:
+      sn = magerr2sn(magerr)
+      return mag + 2.5 * np.log10(sn / N)
 
