@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import photomUtils as pu
 from scipy.integrate import cumtrapz
+from pygoods import sextractor
 
 # Some default matplotlib stuff
 default_ebar_kwargs={'ms':12, 'marker':'.', 'mec':'black', 'mfc':'black', 
@@ -25,10 +26,40 @@ def scinote2exp(scinote):
       # return float(n[0]), int(n[1])
       return "%.2f \\times 10^{%d}" % (float(n[0]), int(n[1]))
 
-class PlotLePhare(object):
-   ## Le Phare output is object by object
-   def __init__(self, specfile):
-      # read the Le Phare output *.spec file
+# Write a parent class for LePhare-related tasks, then subclasses for plotting 
+# and running MC sampling of photometry
+class LePhare(object):
+   def __init__(self, paramfile):
+      self.paramfile = paramfile
+
+   def readObject(self, objid, specdir='.'):
+      # construct the output spec file name from object ID, and delegate the 
+      # work to self.readSpec
+      self.objid = objid
+      specfile = "Id%09d.spec" % objid
+      self.readSpec(specdir + '/' + specfile)
+
+   def readSpec(self, specfile):
+      """
+      Read the Le Phare output *.spec file; will set the following attributes:
+      self.bestfitProps  --- best-fit stellar population properties
+      self.photom        --- the photometry from the input catalog
+      self.objid
+      self.specz         --- spec-z if there was any in the input catalog
+      self.photz         --- best-fit photo-z (peak of P(z)?)
+      self.photomKeys    --- filter names(?)
+      self.nfilters      --- number of filters
+      self.zsteps        --- number of redshift steps
+      self.zarray        --- the redshift grid over which P(z) is defined
+      self.Pz            --- the P(z) curve
+      self.lambda_max
+      self.lambda_min    --- the range of wavelength for plotting
+      self.wave 
+      self.flux 
+      self.wave2
+      self.flux2         --- the wavelengths & fluxes of the 1st and 2nd 
+                             best SED models
+      """
       f = open(specfile, 'rb')
       lines = f.readlines()
       f.close()
@@ -157,6 +188,52 @@ class PlotLePhare(object):
                self.wave2 = np.array(self.wave2)
                self.flux2 = np.array(self.flux2)
             continue
+
+class MCLePhare(LePhare):
+   """
+   Runs Monte Carlo sampling to determine error bars for SED fitting.
+   """
+   def __init__(self, paramfile, inputcat):
+      self.paramfile = paramfile
+      self.inputcat = inputcat
+
+   def readCatalog(self):
+      # read the filters in the catalog
+      with open(self.inputcat, 'rb') as f:
+         lines = f.readlines()
+         columns = []
+         for l in lines:
+            if l[0] == '#':
+               l = l.split()
+               if l[1] == 'ID':
+                  # this is the header line
+                  for l2 in l[1:]:
+                     columns += [l2.lower()]
+                  break
+      c = sextractor(self.inputcat)
+      for i in range(len(columns)):
+         setattr(self, columns[i], getattr(c, '_%d'%(i+1)))
+
+   def MCSampling(self, N):
+      """
+      Runs Monte Carlo sampling of the input photometry catalog, runs LePhare
+      for each realization, and collect the set of values for stellar
+      population properties.
+      """
+      # read the photometry of input catalog
+      self.readCatalog()
+      # for i in range(N):
+      #    create a new input catalog with perturbed photometry
+      #    update the parameter file with the perturbed catalog
+      #    run LePhare fitting
+      #    read the best-fit parameters, store the results
+      #    
+
+
+class PlotLePhare(LePhare):
+   ## Le Phare output is object by object
+   def __init__(self, objid, specdir='.'):
+      self.readObject(objid, specdir=specdir)
 
    def plot_Pz(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, hatch='\\', **plot_kwargs):
       plot_kwargs_copy = default_plot_kwargs.copy()
@@ -326,8 +403,10 @@ def plot_HST_IRAC_all(objid, objname="", colors=['blue','red'], savefig=True, le
    ax1.set_xscale('log')
    ax1.set_yscale('log')
    ax2 = fig.add_subplot(212)
-   hstPlot = PlotLePhare('hst_only/%s' % specfile)
-   iracPlot = PlotLePhare('with_irac/%s' % specfile)
+   hstPlot = PlotLePhare(objid, 'hst_only')
+   # hstPlot = PlotLePhare('hst_only/%s' % specfile)
+   iracPlot = PlotLePhare(objid, 'with_irac')
+   # iracPlot = PlotLePhare('with_irac/%s' % specfile)
    # First plot the photometry points with iracPlot only 
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
                               ebar_kwargs={'mec':'black','ecolor':'black'})
