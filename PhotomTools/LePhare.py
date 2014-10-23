@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import photomUtils as pu
 from scipy.integrate import cumtrapz
 from pygoods import sextractor
+import copy, os, sys, subprocess
 
 # Some default matplotlib stuff
 default_ebar_kwargs={'ms':12, 'marker':'.', 'mec':'black', 'mfc':'black', 
@@ -32,11 +33,15 @@ class LePhare(object):
    def __init__(self, paramfile):
       self.paramfile = paramfile
 
+   def getSpecFile(self, objid):
+      specfile = "Id%09d.spec" % objid
+      return specfile
+
    def readObject(self, objid, specdir='.'):
       # construct the output spec file name from object ID, and delegate the 
       # work to self.readSpec
       self.objid = objid
-      specfile = "Id%09d.spec" % objid
+      specfile = self.getSpecFile(objid)
       self.readSpec(specdir + '/' + specfile)
 
    def readSpec(self, specfile):
@@ -196,23 +201,25 @@ class MCLePhare(LePhare):
    def __init__(self, paramfile, inputcat):
       self.paramfile = paramfile
       self.inputcat = inputcat
+      self.catHeader = ""
+      self.catColumns = []
 
    def readCatalog(self):
       # read the filters in the catalog
       with open(self.inputcat, 'rb') as f:
          lines = f.readlines()
-         columns = []
          for l in lines:
             if l[0] == '#':
-               l = l.split()
-               if l[1] == 'ID':
+               l2 = l.split()
+               if l2[1] == 'ID':
                   # this is the header line
-                  for l2 in l[1:]:
-                     columns += [l2.lower()]
+                  self.catHeader = copy.copy(l)
+                  for l3 in l2[1:]:
+                     self.catColumns += [l3.lower()]
                   break
       c = sextractor(self.inputcat)
-      for i in range(len(columns)):
-         setattr(self, columns[i], getattr(c, '_%d'%(i+1)))
+      for i in range(len(self.catColumns)):
+         setattr(self, self.catColumns[i], getattr(c, '_%d'%(i+1)))
 
    def MCSampling(self, N):
       """
@@ -222,13 +229,90 @@ class MCLePhare(LePhare):
       """
       # read the photometry of input catalog
       self.readCatalog()
-      # for i in range(N):
-      #    create a new input catalog with perturbed photometry
-      #    update the parameter file with the perturbed catalog
-      #    run LePhare fitting
-      #    read the best-fit parameters, store the results
-      #    
-
+      MainDIR = os.getcwd()
+      root = os.path.splitext(self.inputcat)[0]
+      assert len(self.catHeader) > 0
+      if not os.path.exists('MonteCarlo'):
+         os.mkdir('MonteCarlo')
+      for objid in self.id:
+         objout = 'MonteCarlo/MCOutput_OBJ%d.txt' % objid
+         if not os.path.exists(objout):
+            with open(objout, 'wb') as log:
+               print >> log, "# ITER  ZPHOT  CHI2  AGE  EBMV  SMASS  SFR"
+      for niter in range(N):
+         # create a new input catalog with perturbed photometry
+         # Now perturb detected magnitudes; do NOTHING to upper limits
+         newcat = '%s_run%d.cat' % (root, niter)
+         with open('MonteCarlo/' + newcat, 'wb') as f:
+            f.write(self.catHeader)
+            for i in range(len(self.id)):
+               newline = "%d  " % self.id[i]
+               for j in range(1, len(self.catColumns))[::2]:
+                  mag = getattr(self, self.catColumns[j])[i]
+                  mag_err = getattr(self, self.catColumns[j+1])[i]
+                  if (mag < 0) or (mag > 90):
+                     # no photometry in this filter
+                     pass
+                  elif (mag_err < 0):
+                     # upper limit in this filter
+                     pass
+                  else:
+                     mag = np.random.normal(mag, mag_err)
+                  newline += "%.3f  %.3f  " % (mag, mag_err)
+               newline += "\n"
+               f.write(newline)
+         # update the parameter file with the perturbed catalog
+         newparamfile = os.path.splitext(self.paramfile)[0]+"_run%d.param" % niter
+         with open(self.paramfile, 'rb') as f2:
+            lines2 = f2.readlines()
+         # Now replace input values with values for each iteration of MC
+         for i2 in range(len(lines2)):
+            if lines2[i2].startswith('CAT_IN'):
+               lines2[i2] = lines2[i2].replace(self.inputcat, newcat)
+            elif lines2[i2].startswith('CAT_OUT'):
+               l2 = lines2[i2].split()
+               l2[1] = "%s.out" % (os.path.splitext(l2[1])[0]+'_run%d'%niter)
+               lines2[i2] = ' '.join(l2) + '\n'
+            elif lines2[i2].startswith('PARA_OUT'):
+               l2 = lines2[i2].split()
+               print l2
+               if not os.path.exists('MonteCarlo/%s' % l2[1]):
+                  os.system('cp %s MonteCarlo/%s' % (l2[1], l2[1]))
+               # l2[1] = "%s" % l2[1]
+               # lines2[i2] = ' '.join(l2)
+            elif lines2[i2].startswith('PDZ_OUT'):
+               l2 = lines2[i2].split()
+               l2[1] = "%s" % (l2[1] + '_run%d' % niter)
+               lines2[i2] = ' '.join(l2) + '\n'
+         # write new parameter file
+         print "Write new parameter file %s..." % newparamfile
+         os.chdir('MonteCarlo')
+         with open(newparamfile, 'wb') as f2n:
+            for i2 in range(len(lines2)):
+               f2n.write(lines2[i2])
+         # run LePhare fitting
+         print "Now run LePhare for iteration %d..." % niter
+         rcode = subprocess.call(["zphota", "-c", newparamfile])
+         # read the best-fit parameters, store the results
+         # I need the following properties:
+         # - photo z
+         # - stellar mass
+         # - age
+         # - E(B-V)
+         # - SFR
+         print "Collect the best-fit stellar pop values..."
+         for objid in self.id:
+            self.readObject(objid, specdir='.')
+            bestProps = self.bestfitProps['GAL-1']  
+            # restrict to the first galaxy component
+            with open('MCOutput_OBJ%d.txt' % objid, 'ab') as log:
+               # the columns are ITER  PHOTZ  CHI2  AGE  EBMV  SMASS  SFR
+               outline = "%d  %.6f  %.6f  %.6e  %.6f  %.6e  %.6e" % (niter, self.photz, bestProps['Chi2'], bestProps['Age'], bestProps['EB-V'], bestProps['Mass'], bestProps['SFR'])
+               print >> log, outline
+         # go back to the previous directory...
+         print "Finished iteration %d." % niter
+         os.chdir(MainDIR)
+      print "Monte Carlo simulations all done!"
 
 class PlotLePhare(LePhare):
    ## Le Phare output is object by object
