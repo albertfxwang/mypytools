@@ -238,11 +238,11 @@ class MCLePhare(LePhare):
          objout = 'MonteCarlo/MCOutput_OBJ%d.txt' % objid
          if not os.path.exists(objout):
             with open(objout, 'wb') as log:
-               print >> log, "# ITER  ZPHOT  CHI2  AGE  EBMV  SMASS  SFR"
+               print >> log,"# ITER  ZPHOT  CHI2  logAGE  EBMV  logSMASS  SFR"
       for niter in range(N):
          # create a new input catalog with perturbed photometry
          # Now perturb detected magnitudes; do NOTHING to upper limits
-         newcat = '%s_run%d.cat' % (root, niter)
+         newcat = '%s_MC.cat' % (root)
          with open('MonteCarlo/' + newcat, 'wb') as f:
             f.write(self.catHeader)
             for i in range(len(self.id)):
@@ -262,7 +262,7 @@ class MCLePhare(LePhare):
                newline += "\n"
                f.write(newline)
          # update the parameter file with the perturbed catalog
-         newparamfile = os.path.splitext(self.paramfile)[0]+"_run%d.param" % niter
+         newparamfile = os.path.splitext(self.paramfile)[0]+"_MC.param" 
          with open(self.paramfile, 'rb') as f2:
             lines2 = f2.readlines()
          # Now replace input values with values for each iteration of MC
@@ -271,7 +271,7 @@ class MCLePhare(LePhare):
                lines2[i2] = lines2[i2].replace(self.inputcat, newcat)
             elif lines2[i2].startswith('CAT_OUT'):
                l2 = lines2[i2].split()
-               l2[1] = "%s.out" % (os.path.splitext(l2[1])[0]+'_run%d'%niter)
+               l2[1] = "%s.out" % (os.path.splitext(l2[1])[0]+'_MC')
                lines2[i2] = ' '.join(l2) + '\n'
             elif lines2[i2].startswith('PARA_OUT'):
                l2 = lines2[i2].split()
@@ -280,10 +280,10 @@ class MCLePhare(LePhare):
                   os.system('cp %s MonteCarlo/%s' % (l2[1], l2[1]))
                # l2[1] = "%s" % l2[1]
                # lines2[i2] = ' '.join(l2)
-            elif lines2[i2].startswith('PDZ_OUT'):
-               l2 = lines2[i2].split()
-               l2[1] = "%s" % (l2[1] + '_run%d' % niter)
-               lines2[i2] = ' '.join(l2) + '\n'
+            # elif lines2[i2].startswith('PDZ_OUT'):
+            #    l2 = lines2[i2].split()
+            #    l2[1] = "%s" % (l2[1] + '_run%d' % niter)
+            #    lines2[i2] = ' '.join(l2) + '\n'
          # write new parameter file
          print "Write new parameter file %s..." % newparamfile
          os.chdir('MonteCarlo')
