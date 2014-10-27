@@ -42,6 +42,8 @@ hSubaru = S.FileBandpass('%s/CANDELS_FILTERS/MOIRCS/H_MOIRCS.dat' % banddir)
 hSubaru.name = 'hSubaru'
 kSubaru = S.FileBandpass('%s/CANDELS_FILTERS/MOIRCS/K_MOIRCS.dat' % banddir)
 kSubaru.name = 'kSubaru'
+IRAC1 = S.FileBandpass('%s/CANDELS_FILTERS/IRAC/irac_ch1.dat' % banddir)
+IRAC2 = S.FileBandpass('%s/CANDELS_FILTERS/IRAC/irac_ch2.dat' % banddir)
 # default_filters = [f435w, f814w, f098m, f125w, f160w]
 default_filters = [uvimos, f435w, f475w, f555w, f606w, f625w, f775w, f814w, \
    f850lp, f098m, f105w, f110w, f125w, f140w, f160w]
