@@ -1,1 +1,1288 @@
-/Users/khuang/Dropbox/bin/run_sim_multiband_galfit
+#!/usr/bin/env python
+
+# run_simulations file1.sim file2.sim ... 
+# This script adds fake galaxies to real images, runs sextractor
+# with an association list, and outputs the SExtractor parameters
+# for the matched sources.
+# 
+# Configuration parameters (file.sim...this list will probably grow):
+#
+# SEXFILE		file.sex
+# PSFFILE		""
+# NITER			1
+# REALIMAGE		fakez_drz.fits	
+# FLAGIMAGE		fakez_flag.fits	
+# SAVE			no
+# NGALAXIES		100
+# CIRCULAR              no
+# DISKFRAC              0.5
+# SCALE			0.01
+# MAGLOW		20 
+# MAGHIGH		28 
+# MAGZPT		24.961 
+# RMIN			0.01	# minimum input radius arcsec
+# MAX			1.5	# maximum input radius arcsec
+# RUN_SEXTRACTOR        yes     
+# MEASURE_PETROSIAN     yes     
+# LOGNORMAL_MAG0	24.0	# Not yet implemented
+# LOGNORMAL_PEAK	0.5
+# LOGNORMAL_WIDTH	0.5
+# 
+#
+# Functions:
+#   usage()		- print error message
+#   rand()		- Get a random number (0<r<1)
+#   ifgt()		- test if arg1 > arg2
+#   iflt()		- test if arg1 < arg2 
+#   test_flags()	- test if galaxy is on the image
+#   get_axialratio()	- get an axial ratio from a distribution function
+#   makegals()		- make artdata input file
+#   makenoiselessimage()- use artdata to make a noiseless image
+#   convolve()		- convolve simulated noiseless image
+#   addsimulated()	- add noiseless image to the real image
+#   simulate()		- run the simulations repeatedly
+#   measure_petrosian() - measure petrosian radii()
+#   apflux() 		- used by measure_petrosian()
+#   getrp() 		- used by measure_petrosian()
+#   measure_petrosian() - measure petrosian radii()
+#   apflux()		- measure aperture fluxes 
+#   parse_simconfig()	- parse the input *.sim file
+#    
+# Version 1.0.0 H. Ferguson - 1/8/03
+#         1.0.1 H. Ferguson - 1/10/03 revised to spit out galaxy type 
+#         
+#         3.1.1 H. Ferguson - multiband version. Random selection from galaxy
+#                             input file
+#         3.1.2 H. Ferguson - Append extra info (e.g. redshifts) from mag input 
+#				file to each line of the gl_* file.
+#         3.1.3 H. Ferguson - Fixed randomization of input mags
+#
+#         3.1.4 H. Ferguson - Fixed single-band option
+#
+#         3.1.5 H. Ferguson - Added option to specify minimum flag value 
+#                             for not inserting sources
+#         3.1.6 H. Ferguson - Added fixed magnitude correction of -0.13 mag
+#                             to devauc profile galaxies before running
+#                             mkobjects with artdata.dynrange=1.e5.
+#                             To account for artdata missing flux.
+ 
+
+version= "3.1.6"
+
+# mkobjects creates noiseless devauc-profile galaxies that are 
+# 0.13 mag too faint when dynrange=1.e5
+devauc_correction = -0.00  
+
+def usage():
+  print """Usage: run_simulation rootname.sim
+           rootname.sim must exist and contain the simulation parameters.
+        """
+
+#import random
+from numpy import *
+import os, sys, glob, string, shutil, time
+import subprocess as sub
+from math import *
+from string import *
+from pygoods import *
+from pyraf import iraf
+from iraf import noao, tables, stsdas, fourier, fitting, artdata, images
+curdir = os.getcwd()
+#os.chdir('/data/raid10/khuang/galfit_sims')
+#import galfitheader
+from galfitsim_util import readgfheader
+from galfitsim_util import joinsexcat
+#import mygetresults
+from galfitsim_util import makematchcat
+from galfitsim_util.galsimfit import galsimfit
+#import make_bkgd3 as mb3
+os.chdir(curdir)
+
+version= "%s version %s" % (sys.argv[0],version)
+datum = time.strftime("%m%d",time.localtime())
+gsigma = 10.   # sigma of Gaussian wing in pixels
+#depodir = '/data/raid10/khuang/galfit_sims'
+curdir = os.getcwd()
+outfile= "gal.list"
+
+# Parameters describing axial ratio distribution 
+# Taken from gallist.c (/data/planxty1/hcf/synthesis2/mcsbcolor)
+#   bulge axial ratio distribution function 0
+#   bulge axial ratio distribution parameters 0.3 0.9
+#   disk axial ratio distribution function 1
+#   disk axial ratio distribution parameters 0.05 0.01
+qpar = {"devauc": (0,0.3, 0.9), "expdisk": (1,0.05, 0.01)}
+
+
+#---------------------------------------------------------------
+# Generic utilities
+#---------------------------------------------------------------
+def rand():
+    return random.random()
+
+def ifgt(arg1,arg2,ans1,ans2):
+    if arg1 > arg2:
+        return(ans1)
+    else:
+        return(ans2)
+
+def iflt(arg1,arg2,ans1,ans2):
+    if arg1 < arg2:
+        return(ans1)
+    else: 
+        return(ans2)
+    
+#---------------------------------------------------------------
+# Make individual simulated images:
+#---------------------------------------------------------------
+
+# Tests to see if galaxy is on the image
+def test_flags(x,y,flagimage):
+    """Tests to see if galaxy is (mostly) on the image"""
+    f = flagimage+"[%d:%d,%d:%d]" % (x-5,x+5,y-5,y+5)
+    s = iraf.imstat(f,fields="max",format=0,lower='INDEF',upper='INDEF',
+	nclip=0,Stdout=1)
+#   print f,s
+    return int(float(s[0]))
+
+# Gets a random axial ratio from a distribution of inclinations & true
+# axial ratios
+def get_axialratio(type):
+    """Chooses a random axial ratio"""
+    sini = rand();
+    qp = qpar[type]
+    if qp[0] == 0:
+        # Uniform axial ratio distribution
+        q = (qp[2]-qp[1])*rand()+qp[0]
+    if qp[0] == 1:
+        #q = random.normalvariate(qp[1],qp[2])
+        q = random.normal(qp[1],qp[2])
+        q = max(q,0.01) 
+        q = min(q,1.)
+    cosi = sqrt(1-sini**2)
+    ba = sqrt(sini*sini + (q*cosi)**2)
+    return ba
+
+def randomizemags(n,bands,imags,iotherpars,maglow,maghigh):
+   """Randomly selects magnitudes from the long list of 
+   input magnitudes"""
+   print "in  randomizemags"
+   detectmag = imags[bands[0]]
+   rmax = len(imags[bands[0]])
+   i = 0
+   magindices = []
+   while i < n: 
+      magindex = int(rand() * rmax)
+      if detectmag[magindex] >= maglow and detectmag[magindex] <= maghigh:
+        i = i+1 
+        magindices = magindices + [magindex]
+   bmags = {}
+   otherpars = []
+   print "gal# ", 
+   for b in bands:
+     bmags[b] = []
+     print "%6s " % (b),
+   print ""
+   for i in magindices:
+     print "%5d " % (i),
+     for b in bands:
+       bmags[b] = bmags[b] + [imags[b][i]]
+       print "%6.2f " % (imags[b][i]),
+     print iotherpars[i],
+     otherpars.append(iotherpars[i])
+     print ""
+   return (bmags,otherpars)
+
+
+def getmags(n,bands,maglow,maghigh):
+   """Generate a random mag between maglow and maghigh
+   and add it into the array"""
+   mags = []
+   for i in range(n):
+      mag = maglow + rand() * (maghigh-maglow);
+      mags = mags + [mag]
+   bmags = {}
+   for b in bands:
+     bmags[b] = mags
+   return bmags
+
+# Creates a galaxy list file for iraf.artdata.mkobjects
+def makegals(n,galfile,artfile,flagimage,maglow,maghigh,rmin,rmax,xmax,ymax,
+       rdistfunc='uniform',rdistpars=[],
+       edgebuffer=60,circularflag=0,diskfrac=0.5,flagmin=1):
+    """Makes the galaxy list file; equal numbers of spirals & ellipticals"""
+    i = 0
+    galfile_forsextractor = "%s_2" % galfile
+    f=open(galfile,"w")
+    fa=open(artfile,"w")
+    f2 = open(galfile_forsextractor,"w")
+    while i < n:
+	type = ifgt(rand(),diskfrac,"devauc","expdisk")
+
+        mag = maglow + rand() * (maghigh-maglow);
+        if rdistfunc == 'lognormal':
+           re = rlognormal(rmin,rmax,mag,rdistpars);
+        else:
+           re = rmin + rand() * (rmax-rmin);
+	x = edgebuffer/2. + (xmax-edgebuffer)*rand() 
+	y = edgebuffer/2. + (ymax-edgebuffer)*rand() 
+	pa = 360. * rand();
+        if circularflag:
+            ba = 1.0
+        else:
+            ba = get_axialratio(type)
+        sini = rand();
+        inc = asin(sini);
+        if test_flags(x,y,flagimage) <= flagmin:
+	    fa.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no\n" 
+		     % (x,y,mag,type,re,ba,pa))
+            if type == "devauc":
+	        f.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no\n" 
+		     % (x,y,mag+devauc_correction,type,re,ba,pa))
+                f2.write("%10.2f %10.2f %8.3f 1 %8.3f %6.2f %6.2f\n" 
+		     % (x,y,mag,re,ba,pa))
+            else:
+	        f.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no\n" 
+		     % (x,y,mag,type,re,ba,pa))
+                f2.write("%10.2f %10.2f %8.3f 0 %8.3f %6.2f %6.2f\n" 
+		     % (x,y,mag,re,ba,pa))
+
+            i = i+1
+    f.close()
+    fa.close()
+    f2.close()
+
+# Creates a galaxy list files for iraf.artdata.mkobjects
+
+def makegals_multiband(bands,detectband,mags,flagimage,maglow,
+  maghigh,rmin,rmax,xmax,ymax,rdistfunc='uniform',rdistpars=[],
+  edgebuffer=60,circularflag=0,diskfrac=0.5,otherpars=[],
+  igalfile="",flagmin=1):
+  """Makes the galaxy list files """
+
+  print "in makegals_multiband"
+  galtype = {'devauc':1,'expdisk':0}
+
+  # Get radii and position angles
+  l_x = l_y = l_type = l_re = l_ba = l_pa = []
+  for mag in mags[detectband]:
+    type = ifgt(rand(),diskfrac,"devauc","expdisk")
+    if rdistfunc == 'lognormal':
+      re = rlognormal(rmin,rmax,mag,rdistpars)
+    elif rdistfunc == 'loguniform':
+      logre = log10(rmin) + rand() * (log10(rmax)-log10(rmin))
+      re = 10.**logre
+    else:
+      re = rmin + rand() * (rmax-rmin);
+    offimage = 1
+    while offimage: 
+       x = edgebuffer/2. + (xmax-edgebuffer)*rand() 
+       y = edgebuffer/2. + (ymax-edgebuffer)*rand() 
+       if test_flags(x,y,flagimage[detectband]) <= flagmin:
+            offimage = 0
+    pa = 360. * rand();
+    if circularflag:
+      ba = 1.0
+    else:
+      ba = get_axialratio(type)
+    sini = rand();
+    inc = asin(sini);
+    l_x = l_x + [x]
+    l_y = l_y + [y]
+    l_type = l_type + [type]
+    l_re = l_re + [re]
+    l_ba = l_ba + [ba]
+    l_pa = l_pa + [pa]
+
+  # Write the galaxy parameters out to files
+  for b in bands:
+#   print "len(mags[%s]) = %d" % (b,len(mags[b]))
+    artfile = "glart_%s.list" % (b)  # artdata output
+    gfile = "gl_%s.list" % (b)  # list file for output directory
+    sfile = "gs_%s.list" % (b)  # SExtractor assoc list input
+    f=open(artfile,"w")
+    ff=open(gfile,"w")
+    f2 = open(sfile,"w")
+    for i in range(len(mags[b])):
+      # Write lines for the mkobjects galaxy list
+      if l_type[i] == 'devauc':
+          f.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no " 
+           % (l_x[i],l_y[i],mags[b][i]+devauc_correction,
+              l_type[i], l_re[i],l_ba[i],l_pa[i]))
+      else:
+          f.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no " 
+            % (l_x[i],l_y[i],mags[b][i],l_type[i], l_re[i],l_ba[i],l_pa[i]))
+      ff.write("%10.2f %10.2f %8.3f %12s %8.3f %6.2f %6.2f no " 
+            % (l_x[i],l_y[i],mags[b][i],l_type[i], l_re[i],l_ba[i],l_pa[i]))
+      if len(otherpars) > 0:
+        outstring = " %s" % (otherpars[i])
+        ff.write(outstring)
+      f.write("\n")
+      ff.write("\n")
+
+      # Write lines for the SExtractor association file
+      outstring = "%10.2f %10.2f " % (l_x[i],l_y[i])
+      outstring = outstring + "%8.3f %d %8.3f %6.2f %6.2f" % (
+          mags[b][i],galtype[l_type[i]],l_re[i],l_ba[i],l_pa[i])
+      if len(otherpars) > 0:
+        outstring = outstring + " %s" % (otherpars[i])
+      #print outstring
+      f2.write("%s\n" % outstring)
+
+    f.close()
+    ff.close()
+    f2.close()
+# Write out galaxies to igalfile if desired
+  if len(igalfile) > 0:
+    igfile = open(igalfile,'a')
+    for i in range(len(mags[b])):
+      outstring = "%10.2f %10.2f " % (l_x[i],l_y[i])
+      outstring = outstring + "%d %8.3f %6.2f %6.2f" % (
+          galtype[l_type[i]],l_re[i],l_ba[i],l_pa[i])
+      for b in bands:
+        outstring = outstring + "%8.3f " % (mags[b][i])
+      if len(otherpars) > 0:
+        outstring = outstring + " %s" % (otherpars[i])
+      igfile.write("%s\n" % outstring)
+    igfile.close()
+  print "finish makegals_multiband"
+
+def init_rlognormal(c):
+  sigma = c['LOGNORMAL_SIGMA']
+  r0 = c['LOGNORMAL_PEAK']/c['SCALE']
+  mag0 = c['LOGNORMAL_MAG0']
+  beta = c['LOGNORMAL_BETA']
+  print "sigma,r0,mag0,beta: %8.3f %8.3f %8.3f %8.4f" % (sigma,r0,mag0,beta)
+  return (sigma,r0,mag0,beta)
+
+def rlognormal(rmin,rmax,mag,(sigma,r0,mag0,beta)):
+  """Randomly generates a radius drawn from lognormal distribution"""
+  lumratio = 10**((mag-mag0)/-2.5)
+  mu = log(r0)+beta*log(lumratio)
+  val = random.normal(mu,sigma)
+  radius = exp(val)
+  return radius
+
+# Convolves with the PSF. Done by quadrants because of memory limitations.
+def convolve(root,psffile,save=0):
+    """convolve convolves infine with psf; for now just calls convolvebyquadrant
+    """
+    unconvolved = root+'_nopsf.fits'
+    convolved = root+'.fits'
+    #os.rename(root+'.fits',unconvolved)  
+    os.rename(convolved,unconvolved)
+    try:
+      from hconvolve import hconvolve
+      unconvimg = pyfits.getdata(unconvolved)
+      psfimg = pyfits.getdata(psffile)
+      convimg = hconvolve(unconvimg, psfimg)
+      h = pyfits.PrimaryHDU(convimg)
+      hdulist = pyfits.HDUList([h])
+      hdulist.writeto(convolved)
+    except:
+      iraf.fconvolve(unconvolved,psffile,convolved)
+
+    if not save:
+      os.remove(unconvolved)
+
+def convolvebyquadrant(unconvolved,convolved,xmax,ymax,psffile):
+    """convolvebyquadrant  convolves infile with psf """
+    tmpfile=iraf.mktemp('_mkdconv')
+    x1=1; y1=1; x3=xmax; y3=ymax
+    x2=int(xmax/2.)
+    y2=int(ymax/2.)
+    q1='[%d:%d,%d:%d]' % (x1,x2,y1,y2)
+    q2='[%d:%d,%d:%d]' % (x2,x3,y1,y2)
+    q3='[%d:%d,%d:%d]' % (x1,x2,y2,y3)
+    q4='[%d:%d,%d:%d]' % (x2,x3,y2,y3)
+    quadrant = [q1,q2,q3,q4]
+    for i in quadrant:
+      quad = "%s%s" % (unconvolved,i) 
+      print "convolving %s with %s" % (quad,psffile)
+      # convolves the entire image with psf, and not just convolve the quadrant? -KH
+      iraf.fconvolve(unconvolved,psffile,tmpfile)
+      iraf.imcopy(tmpfile,quad)
+    iraf.rename(tmpfile,convolved)
+
+# Creates a noiseless HST image
+def makenoiselessimage(galfile,simroot,magz,xmax,ymax,save=0,gain=1.0, psffile=""):
+
+    """Creates a noiseless convolved image"""
+
+    outfile=simroot+'.fits'
+    print outfile,xmax,ymax,galfile,magz,gain
+    iraf.unlearn('artdata')
+    iraf.unlearn('mkobjects')
+    iraf.artdata.dynrange=1.e5
+    iraf.mkobjects(outfile, output="", title="", ncols=xmax, 
+      nlines=ymax,header="", background=0.0, objects=galfile,
+      xoffset=0., yoffset=0., star="gaussian", radius=0.1,
+      beta=2.5, ar=1., pa=0., distance=1., exptime=1., 
+      magzero=magz, gain=gain, rdnoise=0., poisson=0,
+      seed=2, comments=1)
+    if len(psffile) > 0:
+      convolve(simroot,psffile,save=save)
+
+# Adds simulated image to real image
+def addsimulated(galfile,root,realimage,magz,xmax,ymax,
+    gain=1.0,psffile="",save=0):
+   
+    simulation = root+'_sim.fits'
+    outimage = root+'.fits'
+    makenoiselessimage(galfile,root+'_sim',magz,xmax,ymax,
+       save=save,gain=gain,psffile=psffile)
+    iraf.imcalc(realimage+","+simulation,outimage,"im1+im2")
+    if not save:
+      os.remove(simulation)
+
+def addsimulated_galfit(galfile,root,realimage,magzpt,xmax,ymax,
+  gain=1.0,psffile="",save=0):
+   
+    simulation = root+'_sim.fits'
+    outimage = root+'.fits'
+    gfinput = root+'_sim.galfit'
+
+    # write GALFIT input file
+ 
+    f = write_sim_imgpar(gfinput,simulation,psffile,magzpt,xmax,ymax)
+
+    # write individual components
+
+    g = open(galfile)
+    lines = g.readlines()
+    for i in range(len(lines)):
+        #f = write_sim_imgpar(gfinput,simulation,psffile,magzpt)
+        att = lines[i].split()
+        x,y = float(att[0]),float(att[1])
+        mag = float(att[2])
+        gtype = att[3]
+        if gtype == 'expdisk':
+            n = 1
+        else:
+            n = 4
+        re = float(att[4])    
+        axratio = float(att[5])
+        pa = float(att[6])
+        f = write_galfitobj(i+1,f,x,y,mag,re,n,axratio,pa)
+
+    f.close()
+    os.system('galfit -o1 %s' % gfinput)
+
+    # combine with real image
+   
+    iraf.imarith(realimage,'+',simulation,outimage)
+        
+   
+
+def write_galfitobj(num,gffile,x,y,mag,re,n,axratio,pa):
+    gffile.write('\n')
+    gffile.write('# Object number: %d\n' % num)
+    gffile.write(' 0)  sersic            # object type\n')
+    gffile.write(' 1)  %f  %f   1  1  # position x, y\n' % (x,y))
+    gffile.write(' 3)  %f   1         # integrated magnitude\n' % mag)
+    gffile.write(' 4)  %f   1         # R_e (half-light radius) [pix]\n' % re)
+    gffile.write(' 5)  %f   1         # Sersic index n (de Vaucouleurs n=4)\n' % n)
+    gffile.write(' 9)  %f   1         # axis ratio (b/a)\n' % axratio)
+    gffile.write('10)  %f   1         # position angle (PA) [deg: Up=0, Left=90]\n' % pa)
+    return gffile
+
+def write_sim_imgpar(filename,img_out,psf,magzpt,xmax,ymax):
+    # write the image parameter part of GALFIT input file
+    # for artificial galaxy generation
+    f = open(filename,'w')
+    f.write('# IMAGE PARAMETERS\n')
+    f.write('A) blank.fits    # Input data image (FITS file)\n')
+    f.write('B) %s        # Output data image block\n' % img_out)
+    f.write('C) none         # Sigma image name (made from data if blank or "none")\n')
+    f.write('D) %s        # Input PSF image and (optional) diffusion kernel\n' % psf)
+    f.write('E) 1            # PSF fine sampling factor relative to data\n')
+    f.write('F) none         # Bad pixel mask (FITS image or ASCII coord list)\n')
+    f.write('G) none         # FIle with parameter constraints (ASCII file)\n')
+    f.write('H) 1 %d 1 %d  # Image region to fit (xmin xmax ymin ymax)\n' % (xmax,ymax))
+    f.write('I) 60  60       # Size of the convolution box (x y)\n')
+    f.write('J) %f        # Magnitude photometric zeropoint\n' % magzpt)
+    f.write('K) 0.03  0.03   # Plate scale (dx dy)  [arcsec per pixel]\n')
+    f.write('O) regular      # Display type (regular, curses, both)\n')
+    f.write('P) 1            # Options: 0=normal run; 1,make model/imgblock & quit\n')
+    return f 
+
+   
+#---------------------------------------------------------------
+# Run the simulations repeatedly optionally running SExtractor
+#---------------------------------------------------------------
+
+# Currently does not work with input lists of magnitudes.
+
+def simulate(root, magfile='',
+ maglow=20., maghigh=28., rmin=1, rmax=30.,
+ xmax=4096, ymax=4096, edgebuffer=70,
+ sexfile='',
+ sextparfile='',
+ realimage='',
+ flagimage='',
+ rmsimage='',
+ magz=25.0,
+ ngal=100,
+ circularflag=0,
+ niter=1,
+ nstart=0,
+ psffile="",
+ diskfrac=0.5,
+ sextract=1,
+ gain=1.0,
+ save=0,save_segmentation=0,
+ flagmin=1):
+    n = 0
+    outimage=root+'.fits'
+
+    # Create output directory if needed and write version number
+    # to a file named root.version
+    if len(glob.glob(root)) == 0:  # create output directory if needed
+      os.mkdir(root)
+    vfile = open(root+'/'+root+'.version','w')
+    vfile.write(version)
+    vfile.close
+    
+    sparfile = root+'.sextpar'
+    shutil.copyfile(sextparfile,sparfile)
+
+    n=nstart
+    while n < niter:
+        galfile= "gal%d.list" % n
+        artfile= "galart%d.list" % n
+        makegals(ngal,galfile,artfile,flagimage,maglow,maghigh,rmin,rmax,xmax,ymax,
+            rdistfunc,rdistpars=rdistpars,
+            edgebuffer=edgebuffer, 
+            circularflag=circularflag,
+            diskfrac=diskfrac,flagmin=flagmin)
+        addsimulated(artfile,root,realimage,magz,xmax,ymax,save=save,
+            gain=1.0,psffile=psffile)
+        if sextract:
+          catalog = "%s_%d.cat" % (root,n)
+          s_args = "%s -c %s" % (outimage,sexfile)
+          s_args = s_args + " -CATALOG_NAME %s" % (catalog)
+          s_args = s_args + " -ASSOC_NAME %s_2" % (galfile)
+          s_args = s_args + " -MAG_ZEROPOINT %9.4f" % (magz)
+          s_args = s_args + " -GAIN %12.4f" % (gain)
+          s_args = s_args + " -FLAG_IMAGE %s" % (flagimage)
+          s_args = s_args + " -PARAMETERS_NAME %s" % (sparfile)
+          if save_segmentation:
+            s_args = s_args + " -CHECKIMAGE_TYPE SEGMENTATION"
+            s_args = s_args + " -CHECKIMAGE_NAME %s_seg.fits" % (root)
+          s_args = s_args + " -WEIGHT_TYPE MAP_RMS"
+          s_args = s_args + " -WEIGHT_IMAGE %s" % (rmsimage)
+          #print "sex %s" % (s_args)
+          print "cex %s" % (s_args)
+          sys.stdout.flush()
+          #fpipe = os.popen("sex %s" % (s_args))
+          fpipe = os.popen("cex %s" % (s_args))
+          fpipe.close()
+          os.system("mv %s %s/run%d.cat" % (catalog,root,n))
+          newcatalog = "%s_%d.newcat" % (root,n)
+          n_args = "%s -c %s" % (outimage,sexfile)
+          n_args = n_args + " -CATALOG_NAME %s/%s" % (curdir,newcatalog)
+          n_args = n_args + " -MAG_ZEROPOINT %9.4f" % (magz)
+          n_args = n_args + " -GAIN %12.4f" % (gain)
+          n_args = n_args + " -FLAG_IMAGE %s/%s" % (curdir,flagimage)
+          n_args = n_args + " -PARAMETERS_NAME detectnew.param"
+          if save_segmentation:
+            n_args = n_args + " -CHECKIMAGE_TYPE SEGMENTATION"
+            n_args = n_args + " -CHECKIMAGE_NAME %s/%s_segnew.fits" % (curdir,root)
+          n_args = n_args + " -WEIGHT_TYPE MAP_RMS"
+          n_args = n_args + " -WEIGHT_IMAGE %s/%s" % (curdir,rmsimage)
+          #print "sex %s" % (n_args)
+          print "cex %s" % (n_args)
+          sys.stdout.flush()
+          #fpipe = os.popen("sex %s" % (n_args))
+          fpipe = os.popen("cex %s" % (n_args))
+          fpipe.close()
+          os.system("mv %s %s/run%d.newcat" % (newcatalog,root,n))
+        os.system("mv %s %s" % (galfile,root))
+        os.remove(artfile)
+        if not save:
+          os.remove(outimage)
+          os.remove("%s_2" % galfile)
+        n=n+1
+
+#---------------------------------------------------------------
+# Run multiband simulations repeatedly optionally running SExtractor
+#---------------------------------------------------------------
+  
+def simulate_multiband(root,bands,galfitbands,magfile='',
+ maglow=20., maghigh=28., rmin=1, rmax=30.,
+ xmax=4096, ymax=4096, edgebuffer=70,
+ sexfile='', sexfile2='',
+ sextparfile='detect.param',
+ sextparfile2='detect.param',
+ pixscale=0.03,
+ realimage=[],
+ flagimage=[],
+ rmsimage=[],
+ magz=[],
+ ngal=100,
+ circularflag=0,
+ niter=1,
+ nstart=0,
+ psffile=[],
+ diskfrac=0.5, 
+ sextract=1,
+ gain=1.0,
+ save=0,save_segmentation=0,
+ flagmin=1,
+ mask='no',
+ test='no',
+ artdatain='no'):
+    if mask == 'no':
+        mask = False
+        print "No masking in galfitting"
+    else:
+        mask = True
+        print "Masks are used in galfitting"
+    n = 0
+    
+    # Create output directory if needed and write version number
+    # to a file named root.version
+    print 'in simulate_multiband'
+    for b in bands:
+      broot = root+'_'+b
+      if len(glob.glob(broot)) == 0:  
+        # create output directory if needed
+        os.mkdir(broot)
+      vfile = open(broot+'/broot'+'.version','w')
+      vfile.write(version)
+      vfile.close
+
+    # Create list of input galaxies in the detect band directory
+    igalfile = "%s_%s/%s.allgal" % (root,bands[0],root)
+    if nstart == 0:
+      igfile = open(igalfile,'w')
+    else:
+      igfile = open(igalfile,'a')
+    igfile.write("# %s \n" % (time.ctime()))
+    igfile.write("# %s \n" % (version))
+    igfile.close()
+       
+    otherpars=[]
+    sparfile = root+'.sextpar'
+    if (len(magfile) > 0): 
+      print "Retrieving magnitudes from %s" % (magfile)
+      (inputmags,input_otherpars,notherpars)=getdata(magfile,bands)
+
+      # Update VECTOR_ASSOC in the SExtractor parameter file
+      sfi = open(sextparfile,'r')
+      sfo = open(sparfile,'w')
+      lines = sfi.readlines()
+      for l in lines:
+        if string.find(l,'VECTOR_ASSOC') == -1:
+          sfo.write(l)
+      sfo.write('VECTOR_ASSOC(%d)\n' % (notherpars+7))
+      sfi.close()
+      sfo.close()
+    else:
+      shutil.copyfile(sextparfile,sparfile)
+
+    n = nstart
+    while n < niter:
+      print "Iteration %d" % (n)
+      if artdatain=='no': 
+          # if no specified list of fake galaxies
+
+          # make artdata file of input fake galaxies
+          if glob.glob('*.list'):
+              os.system('/bin/rm *.list')
+          if len(magfile) == 0:
+              mags = getmags(ngal,bands,maglow,maghigh) 
+              # Get magnitudes for fake objects if didn't 
+              # specify input mags
+          else:
+              (mags,otherpars) = randomizemags(ngal,bands,inputmags,
+                input_otherpars,maglow,maghigh) 
+          print "len(mags[bands[0]]),len(otherpars) %d %d" % (len(mags[bands[0]]),len(otherpars))
+          print "rdistpars: ",rdistpars
+          makegals_multiband(bands,bands[0],mags,flagimage,
+            maglow,maghigh,rmin,rmax,xmax,ymax,
+            rdistfunc=c['RADIUS_DISTRIBUTION'],rdistpars=rdistpars,
+            edgebuffer=edgebuffer,circularflag=circularflag,
+            diskfrac=diskfrac,otherpars=otherpars,igalfile=igalfile,
+            flagmin=flagmin)
+      else:
+         # otherwise: use the existing glart_%s.list
+         pass
+      for b in bands:
+        artfile = "glart_%s.list" % (b)  # artdata output
+        broot = root+'_'+b
+
+        addsimulated(artfile,broot,realimage[b],magz[b],xmax,ymax,
+            save=save,gain=1.0,psffile=psffile[b])
+
+
+      if sextract:
+        for b in bands:
+          sfile = "gs_%s.list" % (b)  # SExtractor assoc list input
+          broot = root+'_'+b
+          catalog = "%s_%d.cat" % (broot,n)
+          detectimage = "%s_%s.fits" % (root,bands[0])
+          fakeimage = broot+".fits"
+
+          # Run SExtractor
+          s_args = "%s,%s -c %s" % (detectimage,fakeimage,sexfile)
+          s_args = s_args + " -CATALOG_NAME %s" % (catalog)
+          s_args = s_args + " -ASSOC_NAME %s" % (sfile)
+          s_args = s_args + " -MAG_ZEROPOINT %9.4f" % (magz[b])
+          s_args = s_args + " -GAIN %12.4f" % (gain[b])
+          s_args = s_args + " -FLAG_IMAGE %s" % (flagimage[b])
+          s_args = s_args + " -PARAMETERS_NAME %s" % (sparfile)
+          s_args = s_args + " -CHECKIMAGE_TYPE SEGMENTATION"
+          s_args = s_args + " -CHECKIMAGE_NAME %s_seg.fits" % (broot)
+          s_args = s_args + " -WEIGHT_TYPE MAP_RMS,MAP_RMS"
+          s_args = s_args + " -WEIGHT_IMAGE %s,%s" % (
+            rmsimage[detectband],rmsimage[b])
+          #print "sex %s" % (s_args)
+          print "cex %s" % (s_args)
+          sys.stdout.flush()
+          #fpipe = os.popen("sex %s" % (s_args))
+          fpipe = os.popen("cex %s" % (s_args))
+          fpipe.close()
+          newcatalog = "%s_%d.newcat" % (broot,n)
+          n_args = "%s,%s -c %s" % (detectimage,fakeimage,sexfile)
+          n_args = n_args + " -CATALOG_NAME %s" % (newcatalog)
+          n_args = n_args + " -MAG_ZEROPOINT %9.4f" % (magz[b])
+          n_args = n_args + " -GAIN %12.4f" % (gain[b])
+          n_args = n_args + " -FLAG_IMAGE %s" % (flagimage[b])
+          n_args = n_args + " -PARAMETERS_NAME detectnew.param"
+          n_args = n_args + " -CHECKIMAGE_TYPE SEGMENTATION"
+          n_args = n_args + " -CHECKIMAGE_NAME %s_segnew.fits" % (broot)
+          n_args = n_args + " -WEIGHT_TYPE MAP_RMS,MAP_RMS"
+          n_args = n_args + " -WEIGHT_IMAGE %s,%s" % (
+            rmsimage[detectband],rmsimage[b])
+          #print "sex %s" % (n_args)
+          print "cex %s" % (n_args)
+          sys.stdout.flush()
+          #fpipe = os.popen("sex %s" % (n_args))
+          fpipe = os.popen("cex %s" % (n_args))
+          fpipe.close()
+        for b in bands:
+          broot = root+'_'+b
+          fakeimage = broot+".fits"
+          catalog = "%s_%d.cat" % (broot,n)
+          print catalog
+          try:
+             cat = sextractor(catalog)
+             ncat = len(cat)
+          except:
+             ncat = 0  # no SExtractor detection of fake objects
+             continue
+          if len(glob.glob('mask*.fits')):
+              os.system('rm mask*.fits')
+          if mask:
+              #maskimg = "%s_segnew.fits" % broot
+              maskimg = "%s_masknew.fits" % broot
+              if os.path.exists(maskimg):
+                os.remove(maskimg)
+              # will delegate the work of Gaussian smoothing 
+              # to galfitpl.py
+              # Now incorporate the flag map into the mask image
+              # Set flagged pixel to 1 + maximum segmentation number
+              # so the flagged pixels won't be zero-ed out in galfitpl.py 
+              segnew = pyfits.getdata("%s_segnew.fits" % broot)
+              maxseg = segnew.ravel().max()
+              os.system('cp %s_segnew.fits %s' % (broot, maskimg))
+              flagmap = pyfits.getdata(flagimage[b])
+              h = pyfits.open(maskimg, mode='update')
+              masknew = where(flagmap.ravel() > 0, 1000000, 
+                                 segnew.ravel())
+              masknew = masknew.reshape(segnew.shape)
+              h[0].data = masknew
+              h.flush()
+              h.close()
+
+          newcatalog = "%s_%d.newcat" % (broot,n)
+          joincatalog = "%s_%d.joincat" % (broot,n)
+          gfile = "gl_%s.list" % (b)  # artdata output
+          artfile = "glart_%s.list" % (b)  # artdata output
+          joinsexcat.joinsexcat(catalog,newcatalog,joincatalog)
+          # join two catalogs and put the fake galaxies on the 
+          # top of the joined catalog
+          os.system("mv %s %s/run%d.cat" % (catalog,broot,n))
+          os.system("mv %s %s/run%d.newcat" % (newcatalog,broot,n)) 
+          os.system("mv %s %s/run%d.joincat" % (joincatalog,broot,n))
+          os.system("mv %s %s/gal%d.list" % (gfile,broot,n))                
+          os.system("cp %s %s" % (psffile[b],broot))
+          #---------------------------------------
+          # Run galfit using single sersic function
+          #---------------------------------------
+          if b in galfitbands:
+            os.chdir(broot)
+            print "%s" % broot
+            gfitfile="gfit%d.cat" % (n)
+            nsexfile="run%d.joincat" % (n)
+            #tsexfile="run%d.trimcat" % (n)
+            gnsortfile="run%d.nosortcat" % (n)
+            f1=open(gnsortfile,"w")
+            f1.write("%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n"%('#id',
+               'fluxauto','fluxauto_err','magauto','magauto_err',
+               'hl_radius','background','isoarea','ximage',
+               'yimage','alpha','delta','theta','ellip','fwhm',
+               'flag','class_star','sexid'))
+            #command = "awk 'NR>239' %s > %s" % (nsexfile,tsexfile)
+            #command = "../trimcat.awk %s > %s" % (nsexfile,tsexfile)
+            # wrote a trimcat.awk to do the awk-ing in "root" directory
+            # the above command only works when newcatalog is first 
+            # in tjoin
+            #os.system(command)
+            # f=open(nsexfile)
+            # lines = f.readlines()
+            # f.close()
+            d = sextractor(nsexfile)
+            id = d.number
+            fluxauto = d.flux_auto
+            fluxautoerr = d.fluxerr_auto
+            magauto = d.mag_auto
+            magautoerr = d.magerr_auto
+            # kronrad = d.kron_radius
+            halflight_rad = d.flux_radius_1
+            bkg = d.background
+            isoarea = d.isoarea_image
+            ximage = d.x_image
+            yimage = d.y_image
+            alpha  = d.alpha_j2000
+            delta  = d.delta_j2000
+            theta  = d.theta_image
+            ellip = d.ellipticity
+            fwhm = d.fwhm_image
+            flag = d.imaflags_iso
+            class_star = d.class_star
+            for i in range(len(id)):
+              line =  "%4d %6.4f %6.4f %8.3f %8.3f %5.3f %8.5f %5.2f %8.3f %8.3f %8.5f %8.5f %5.2f %5.3f %5.3f %2d %5.3f %d\n" % (i,
+                     fluxauto[i],fluxautoerr[i],magauto[i],
+                     magautoerr[i],halflight_rad[i],bkg[i],isoarea[i],
+                     ximage[i],yimage[i],alpha[i],delta[i],theta[i],
+                     ellip[i],fwhm[i],flag[i],class_star[i],id[i])
+              f1.write(line)
+            f1.close()
+            f = open(gfitfile, 'wb')
+            f.write('# 1 NUMBER\n')
+            f.write('# 2 FLUX_AUTO\n')
+            f.write('# 3 FLUXERR_AUTO\n')
+            f.write('# 4 MAG_AUTO\n')
+            f.write('# 5 MAGERR_AUTO\n')
+            f.write('# 6 FLUX_RADIUS_1\n')
+            f.write('# 7 BACKGROUND\n')
+            f.write('# 8 ISOAREA_IMAGE\n')
+            f.write('# 9 X_IMAGE\n')
+            f.write('# 10 Y_IMAGE\n')
+            f.write('# 11 ALPHA_J2000\n')
+            f.write('# 12 DELTA_J2000\n')
+            f.write('# 13 THETA_IMAGE\n')
+            f.write('# 14 ELLIPTICITY\n')
+            f.write('# 15 FWHM\n')
+            f.write('# 16 IMAFLAGS_ISO\n')
+            f.write('# 17 CLASS_STAR\n')
+            f.write('# 18 SEX_ID\n')
+            f.close()
+            command = "awk 'NR>1 {print NR-1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18}' %s >> %s" % (gnsortfile,gfitfile)
+            os.system(command)
+            command="rm %s %s" % (nsexfile,gnsortfile)
+            os.system(command)
+            os.chdir('..')
+            imgname=fakeimage
+            rmsname=rmsimage[b]
+            catname=broot+"/"+gfitfile
+            psfname=broot
+            magzp=magz[b]
+            consname1='constraints1'
+            consname2='constraints2'
+            consname3='constraints3'
+            outname1=broot+"/gfit%d_s.cat" % (n)
+            outname2=broot+"/gfit%d_de.cat" % (n)
+            outname3=broot+"/gfit%d_se.cat" % (n)
+            sc = sextractor(broot+'/run%d.cat' % n)
+            nsex = len(sc)
+            # run_2dmodel_1(imgname,rmsname,catname,psfname,magzp,
+            #   consname3,startnum=1,stopnum=nsex,mask=mask,
+            #   maskimg=masknew,gsigma=gsigma,plate=pixscale)
+            os.system('rm galfit_output/obj*.fits')
+            os.system('rm galfit_input/obj*')
+            run_2dmodel_2(imgname=fakeimage, rmsname=rmsimage[b], band=b,
+                          catname=catname, psfname=psffile[b], magzpt=magzp, 
+                          consname=consname3, startnum=0, stopnum=nsex, 
+                          mask=mask, maskimg=maskimg, gsigma=gsigma, 
+                          plate=pixscale)
+            # os.system('mv galfit-tempfits/offsets %s/offsets%d' % (broot, n))
+            #galfitheader.run('sersic',outname1)
+            # Merge results from GALFIT output image headers
+            # readgfheader.write_gf_output('.','*-out.fits',outname1)
+            readgfheader.write_gf_output('galfit_output', 'obj*_out.fits', outname1)
+            # Match the input and output catalogs for this iteration
+            makematchcat.getbandresults(root,b,n)
+            #os.system('rm GEMS*.fits')
+#         os.system('mv GEMS*.fits %s' % broot)
+#         run_2dmodel_2(imgname,rmsname,catname,psfname,magzp,consname2)
+#         galfitheader.run('devauc',outname2)
+#         run_2dmodel_3(imgname,rmsname,catname,psfname,magzp,consname3)
+#         galfitheader.run('devauc',outname3)
+#         iraf.imdelete(images="GDS*.fits",verify="no")
+#         os.remove("fit.log")
+            if not save:
+              os.system('rm obj*.fits')
+              print "removing %s*.fits" % root
+              #os.remove(fakeimage)
+              os.system('rm %s*.fits' % root)
+            if test=='yes':
+              os.system('mv obj*-out.fits %s' % broot)
+      #os.system('mv galfit.fitted %s/%s_%d_%s.fitted' % 
+      #          (broot,root,n,datum))
+      #os.system('rm %s*.fits' % root) # remove all the SE images
+      n=n+1
+
+def run_2dmodel_1(imgname,rmsname,catname,psfname,magzp,consname1,
+                  startnum,stopnum,mask,maskimg,gsigma,plate):
+    newgalsimfit(image=imgname, sigimg=rmsname, sexcat=catname,
+      startnum=startnum, stopnum=stopnum, psfloc=psfname, 
+      constraint=consname1,fitfunc="sersic", fwhmpsf=0.12, 
+      magzpt=magzp,plate=plate, exist=True, nofat=True,
+      nsplit=2,mask=mask,maskimg=maskimg,gsigma=gsigma)
+
+def run_2dmodel_2(imgname,rmsname,band,catname,psfname,magzpt,consname,
+                  startnum,stopnum,mask,maskimg,gsigma,plate):
+    galsimfit(image=imgname, sigimg=rmsname, sexcat=catname, band=band,
+              startnum=startnum, stopnum=stopnum, psffile=psfname, 
+              constraint=consname, magzpt=magzpt, plate=plate, nofat=True,
+              mask=mask,maskimg=maskimg,gsigma=gsigma)
+
+
+def run_join_1(catalog,newcatalog,joincatalog):
+    iraf.tjoin(intable1=catalog,intable2=newcatalog, outtable=joincatalog,
+      column1="c2,c3", column2="c2,c3", extraro="first", toleran=1.0,
+      casesen="no", mode="a")
+#
+#---------------------------------------------------------------
+# Measure the petrosian radii 
+#---------------------------------------------------------------
+
+def apflux(root,sexfile,scale,pfile):
+  apdir = root+'ap'
+  try:
+    os.mkdir(apdir)
+  except:
+    pass
+  command = 'getapflux.py -c %s -o %s %s.cat >/dev/null' % (sexfile,apdir,root)
+  os.system(command)
+  os.chdir(apdir)
+  command = 'petrosian.py *.dat'
+  f = os.popen(command)
+  lines = f.readlines()
+  rpdict = getrp(lines)
+  f.close()
+  os.chdir('..')
+  cdict = sextutils.parseconfig(sexfile)
+  d = sextractor(root+'.cat')
+  id = d.number
+  ellip = d.ellipticity
+  rh = d.flux_radius_1
+  r20 = d.flux_radius
+  r80 = d.flux_radius_2
+  magiso = d.mag_iso
+  magauto = d.mag_auto
+  magin = d.vector_assoc_2
+  rin = d.vector_assoc_4
+  ellipin = d.vector_assoc_5
+  galaxytype = d.vector_assoc_3
+  flags = d.flags
+  class_star = d.class_star
+  imaflags = d.imaflags_iso
+  run_number = root[3:]
+  for i in range(len(id)):
+    line =  "%4d %5d %8.3f %1d %8.3f %8.3f %6.2f %6.2f %6.2f %5.3f %5.3f %5d %5d %8.3f %8.3f %5.2f %1d\n" % (
+       int(run_number), id[i], rpdict[id[i]][0], rpdict[id[i]][1], rin[i], rh[i],       magin[i], magiso[i], magauto[i], ellipin[i], ellip[i], flags[i], imaflags[i],
+       r20[i], r80[i], class_star[i],galaxytype[i])
+    pfile.write(line)
+
+def getrp(lines):
+  """ Return a dictionary id:[petrosian,flag] """
+  d = {}
+  for l in lines:
+    a = string.split(l)
+    d[int(a[0])] = [float(a[1]),int(a[2])]
+  return d
+
+def measure_petrosian(root,scale,sexfile):
+    cwd = os.getcwd()
+    os.chdir(root)
+    catfiles = glob.glob('*.cat')
+    pfile=open('%s.rp' % (root),'w')
+    header="# run ID    rp  rpflag     rin    rh   magin magiso magauto ellipin ellip flags imaflags r20 r80  class_star\n"
+    pfile.write(header)
+    for ifile in catfiles:
+      runfile = ifile[:-4]
+      apflux(runfile,"../"+sexfile,scale,pfile)
+    pfile.close()
+    os.chdir(cwd)
+
+
+#---------------------------------------------------------------
+# Parse the simulation configuration file e.g. run1.sim
+#---------------------------------------------------------------
+
+def parse_simconfig(configfile):
+  """ parse_simconfig(f) - parse a file of format: 
+      PARAMETER   value
+      into a dictionary
+  """
+
+  boolean_pars = ['SAVE','RUN_SEXTRACTOR','MEASURE_PETROSIAN','CIRCULAR',
+                  'SAVE_SEGMENTATION','MULTIBAND']
+
+  paramdict = {}
+  # defaults
+  paramdict['SEXFILE'] =           ''
+  paramdict['SEXTPARFILE'] =       'detect.param' # needed to expand ASSOC list 
+  paramdict['SEXFILE2'] =           ''
+  paramdict['SEXTPARFILE2'] =      'detect.param' # needed to expand ASSOC list 
+  paramdict['DATAFILE'] =          ''
+  paramdict['MULTIBAND'] =         0
+  paramdict['BANDS'] =             ''  
+  paramdict['PSFFILE'] =           ''
+  paramdict['NITER'] =             1
+  paramdict['REALIMAGE'] =         ''
+  paramdict['FLAGIMAGE'] =         ''
+  paramdict['EDGEBUFFER'] =        70.
+  paramdict['SAVE'] =              0
+  paramdict['NGALAXIES'] =         100
+  paramdict['CIRCULAR'] =          0
+  paramdict['DISKFRAC'] =          0.5
+  paramdict['SCALE'] =             0.05
+  paramdict['MAGLOW'] =            20
+  paramdict['MAGHIGH'] =           28
+  paramdict['MAGZPT'] =            24.961
+  paramdict['GAIN'] =              1.0     # Used for artdata
+  paramdict['RMIN'] =              0.01    # minimum input radius arcsec
+  paramdict['RMAX'] =              1.5     # maximum input radius arcsec
+  paramdict['RUN_SEXTRACTOR'] =    1
+  paramdict['MEASURE_PETROSIAN'] = 1
+  paramdict['SAVE_SEGMENTATION'] = 0
+  paramdict['RADIUS_DISTRIBUTION'] =    'uniform'
+  paramdict['LOGNORMAL_MAG0'] =    24.0    # Not yet implemented
+  paramdict['LOGNORMAL_BETA'] =    0.3333    # Not yet implemented
+  paramdict['LOGNORMAL_PEAK'] =    0.3
+  paramdict['LOGNORMAL_SIGMA'] =   0.5
+  paramdict['FLAGMIN'] =           0
+  paramdict['ARTDATAIN'] = 'no'
+
+  f = open(configfile,'r')
+  lines = f.readlines()
+  f.close()
+  for l in lines:
+    ll = string.replace(l,',',' ') # Relace commas with spaces
+    a = string.split(ll)    
+    if a[0][0] != '#':
+
+      # If there is more than one value then make a list
+      if len(a) > 2 and a[2][0] != '#':
+        for i in range(2,len(a)):
+          end = i
+          if a[i][0] == '#': 
+            break;
+        b = a[1:end+1]
+        values = []
+        for v in b:
+          try:
+            value = int(v)
+          except:
+            try:
+              value = float(v)
+            except:
+              value = v
+          values = values + [value]
+        paramdict[a[0]] = values
+
+      # Otherwise get just the one value 
+      else:
+        try:
+          value = int(a[1])
+        except:
+          try:
+            value = float(a[1])
+          except:
+            value = a[1]
+            if a[0] in boolean_pars:
+              if value[0] == 'N' or value[0] == 'n':
+                value=0
+              else:
+                value=1
+        paramdict[a[0]] = value
+  return paramdict
+
+
+#---------------------------------------------------------------
+# Reads the data file (galaxy redshifts, magnitudes)
+#---------------------------------------------------------------
+  
+def getdata(file,bands):
+    f = open(file,'r')
+    lines = f.readlines()
+    f.close()
+    nobj = len(lines)
+    mags = {}
+    otherpars = []
+    for b in bands:
+      mags[b] = []
+    start = len(bands)
+    first = 1
+    for l in lines:
+        a = l.split()
+        if a[0][0] != '#':			# Skip comments
+          # On first line, figure out how many other parameters are
+          # being passed along to SExtractor in the association list
+          if first:       		
+            end = len(a)
+            notherpars = end-start
+            print notherpars
+            first = 0
+          for i in range(len(bands)):
+            b = bands[i]
+            mags[b].append(float(a[i]))
+          if start < len(a):
+            otherpars.append(string.join(a[start:end]))
+
+    for b in bands:
+      print "len(mags[%s]) = %d" % (b,len(mags[b]))
+    print "%d bands + %d other parameters" % (len(bands),notherpars)
+    return (mags,otherpars,notherpars)
+
+
+#---------------------------------------------------------------
+# Creates a dictionary, indexed by bandpass
+#---------------------------------------------------------------
+  
+def makedict(par,bands):
+  d = {}
+  # If there is only one band, skip the subscript
+  if len(bands) < 2:	
+    d[bands[0]] = par
+  # If there is only more than one band, they should already be lists
+  else:
+    for i in range(len(bands)):
+      d[bands[i]] = par[i]
+  return d
+
+#---------------------------------------------------------------
+# Driver section
+#---------------------------------------------------------------
+
+if __name__ == '__main__':
+  # Read the configuration file and construct arguments for 
+  #	simulate() and measure_petrosian()
+
+  t1 = time.time()
+  curdir = os.getcwd()
+  print "run_sim_multiband version %s" % (version)
+  nodename = os.getenv('HOSTNAME')
+
+  if len(sys.argv) < 2:
+    usage()
+  
+  for a in sys.argv[1:]:
+    if not a.endswith('.sim'):
+      usage()
+    else:
+      c=parse_simconfig(a)
+      if c['SAVE'] and c['NITER'] > 1:
+        print "Error: You must use SAVE = no for NITER > 1"
+        sys.exit()
+      print "Simulation parameters from %s:" % (a)
+      print c
+      if c['MULTIBAND']:
+        detectband = c['BANDS'][0]
+        if c.has_key('GALFITBANDS'):
+          galfitbands = c['GALFITBANDS']
+        else:
+          galfitbands = c['BANDS']
+        realimages = makedict(c['REALIMAGE'],c['BANDS'])
+        flagimages = makedict(c['FLAGIMAGE'],c['BANDS'])
+        rmsimages = makedict(c['RMSIMAGE'],c['BANDS'])
+        gains = makedict(c['GAIN'],c['BANDS'])
+        magzs = makedict(c['MAGZPT'],c['BANDS'])
+        psffiles = makedict(c['PSFFILE'],c['BANDS'])
+        realimage = realimages[detectband]
+      else:
+        realimage=c['REALIMAGE']
+      print "Artdata parameters:"
+      iraf.lpar('artdata')
+      root = a[:-4]    # e.g. root = "run1m"
+      iraf.imgets(realimage,'i_naxis1')
+      xmax = float(iraf.imgets.value)
+      iraf.imgets(realimage,'i_naxis2')
+      ymax = float(iraf.imgets.value)
+      rmin = c['RMIN']/c['SCALE']
+      rmax = c['RMAX']/c['SCALE']
+      rdistpars = []
+      rdistfunc = c['RADIUS_DISTRIBUTION']
+      test = c['TEST']
+      if rdistfunc == 'lognormal':
+        rdistpars = init_rlognormal(c)
+
+      if c['MULTIBAND']:
+        simulate_multiband(root,c['BANDS'],galfitbands,magfile=c['DATAFILE'],
+            maglow=c['MAGLOW'],maghigh=c['MAGHIGH'],magz=magzs,
+            gain=gains,
+            xmax=xmax,ymax=ymax,
+            rmin=rmin,rmax=rmax,edgebuffer=c['EDGEBUFFER'], 
+            sexfile=c['SEXFILE'],
+            sextparfile=c['SEXTPARFILE'],
+            sextparfile2=c['SEXTPARFILE2'],
+            realimage=realimages, flagimage=flagimages,
+            rmsimage=rmsimages,psffile=psffiles,
+            ngal=c['NGALAXIES'], niter=c['NITER'], nstart=c['NSTART'],
+            circularflag=c['CIRCULAR'],
+            diskfrac=c['DISKFRAC'],
+            sextract=c['RUN_SEXTRACTOR'],
+            pixscale=c['SCALE'],
+            save=c['SAVE'],save_segmentation=c['SAVE_SEGMENTATION'],
+            flagmin=c['FLAGMIN'],mask=c['MASK'],
+            test=c['TEST'],artdatain=c['ARTDATAIN'])
+
+        if (c['MEASURE_PETROSIAN']):
+          for b in c['BANDS']:
+            broot = root + '_' + b
+            measure_petrosian(broot,c['SCALE'],c['SEXFILE'])
+
+      else:
+        simulate(root,magfile=c['DATAFILE'],
+          maglow=c['MAGLOW'],maghigh=c['MAGHIGH'],magz=c['MAGZPT'],
+          gain=c['GAIN'],
+          xmax=xmax,ymax=ymax,
+          rmin=rmin,rmax=rmax,edgebuffer=c['EDGEBUFFER'], 
+          sexfile=c['SEXFILE'],
+          sextparfile=c['SEXTPARFILE'],
+          realimage=c['REALIMAGE'], flagimage=c['FLAGIMAGE'], rmsimage=c['RMSIMAGE'],
+          psffile=c['PSFFILE'],
+          ngal=c['NGALAXIES'],
+          niter=c['NITER'], nstart=c['NSTART'],
+          circularflag=c['CIRCULAR'],
+          diskfrac=c['DISKFRAC'],
+          sextract=c['RUN_SEXTRACTOR'],
+          save=c['SAVE'],save_segmentation=c['SAVE_SEGMENTATION'],
+          flagmin=c['FLAGMIN'])
+
+        if (c['MEASURE_PETROSIAN']):
+          measure_petrosian(root,c['SCALE'],c['SEXFILE'])
+      for b in c['BANDS']:
+          broot = root + '_' + b
+          os.chdir(curdir + '/' + broot)
+          #for i in range(c['NITER']):
+          #    mygetresults.getbandresults(root,b,i)
+
+  t2 = time.time()
+  #gt = open('fittime.txt','w')
+  #gt.write('\n%s (with %d iterations) took total %.2f hours \n' 
+  #         % (root,c['NITER'],(t2-t1)/3600.))
+  #gt.flush()
+  #gt.close()
+  #try: 
+  #    os.system('mv fittime.txt %s_I/fittime.txt' % root)
+  #except OSError:
+  #    pass
+  print "Finished simulation"
+  if not save:
+    os.system('rm %s/%s*.fits' % (curdir,root))

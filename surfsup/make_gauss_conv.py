@@ -1,1 +1,0 @@
-/Users/khuang/Dropbox/Research/surfsup_dropbox/bullet/irac/pixfrac0.01/cut1/make_gauss_conv.py

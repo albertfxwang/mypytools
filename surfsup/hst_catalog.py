@@ -287,18 +287,20 @@ class HSTcatalog(fitstable.Ftable):
                   # no information for this band -- set both mag and error to -99.0
                   mag, magErr = [-99., -99.]
                elif mag > 90:
-                  # not detected (mag = 99); set 1-sigma magnitude limit
-                  mag = magErr
+                  # not detected (mag = 99); set N-sigma magnitude limit, where
+                  # N = SNLim
+                  mag = magErr - 2.5 * np.log10(SNLim)
                   magErr = -1.0
                else:
                   #test if S/N>=SNLim
                   SN = pu.magerr2sn(magErr)
                   print objid[i], fname, SN
                   if SN < SNLim:
-                     flux = pu.ABmag2uJy(mag)
-                     flux_1sig = flux / SN
-                     flux_nsig = flux_1sig * SNLim
-                     mag = pu.uJy2ABmag(flux_nsig)
+                     # flux = pu.ABmag2uJy(mag)
+                     # flux_1sig = flux / SN
+                     # flux_nsig = flux_1sig * SNLim
+                     # mag = pu.uJy2ABmag(flux_nsig)
+                     mag = pu.calcNsigMag(mag, magErr)
                      magErr = -1.0
                   print mag, magErr
                # Now append to objString
