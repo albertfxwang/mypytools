@@ -48,11 +48,12 @@ IRAC2 = S.FileBandpass('%s/CANDELS_FILTERS/IRAC/irac_ch2.dat' % banddir)
 default_filters = [uvimos, f435w, f475w, f555w, f606w, f625w, f775w, f814w, \
    f850lp, f098m, f105w, f110w, f125w, f140w, f160w]
 # local galaxy templates
-SB2 = 'galtemplates/GSB2.spec'
-SB3 = 'galtemplates/GSB3.spec'
-ES0 = 'galtemplates/Geso.spec'
-Sbc = 'galtemplates/Gsbc.spec'
-Scd = 'galtemplates/Gscd.spec'
+localTempDIR = '/Users/khuang/LePhare/lephare_dev/sed/GAL/CWW_KINNEY'
+SB2 = localTempDIR + '/CWW_SB2_ext.sed'
+SB3 = localTempDIR + '/CWW_SB3_ext.sed'
+ES0 = localTempDIR + '/CWW_E_ext.sed'
+Sbc = localTempDIR + '/CWW_Sbc_ext.sed'
+Scd = localTempDIR + '/CWW_Scd_ext.sed'
 lowz_galaxies = {'SB2':SB2, 'SB3':SB3, 'ES0':ES0, 'Sbc':Sbc, 'Scd':Scd}
 
 def GalaxyTemplateColors(template, magfile, z0=4.0, z1=9.0, dz=0.1, ebmv=0.0, extlaw='xgal', filters=default_filters):
