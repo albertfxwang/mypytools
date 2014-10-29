@@ -434,15 +434,29 @@ class PlotLePhare(LePhare):
       ax.set_title('Object %s [phot-z = %.3f]' % (self.objid, self.photz), 
                    weight='bold')
       # Also display the best-fit SED properties... 
+      for modtype in self.bestfitProps.keys():
+         if (self.bestfitProps[modtype]['Chi2'] > 0) and (self.bestfitProps[modtype]['Chi2'] < self.bestfitProps['GAL-1']['Chi2']):
+            print "****************************************"
+            print "Warning: best-fit SED type for ID=%s is %s!!" % (self.objid, modtype)
+            print "****************************************"
       bestprop = self.bestfitProps[sedtype]
       mass = scinote2exp('%e' % 10.**bestprop['Mass'])
-      sedtext = "$M_{\mathrm{star}} = %s/\\mu$ [$M_{\odot}$]\n" % mass
+      sedtext = "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % mass
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
       age = scinote2exp('%e' % 10.**bestprop['Age'])
-      sedtext = sedtext + "$\mathrm{Age} = %s$ [yrs]\n" % age
+      sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
       sfr = scinote2exp('%e' % bestprop['SFR'])
-      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu$ [$M_{\odot}$/yr]\n" % sfr
-      sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
+      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
+      # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
+      # Find the best-fit metallicity... only works for BC03 models!
+      metal = bestprop['Model']
+      if (metal <= 9):
+         Z = 0.2  # 0.2 Z_solar (m42 models)
+      elif (metal <= 18):
+         Z = 0.4  # 0.4 Z_solar (m52 models)
+      else:
+         Z = 1.0  # Z_solar (m62 models)
+      sedtext = sedtext + "$Z = %.2f\ Z_{\odot}$" % Z
       if len(txtPreFix):
          sedtext = txtPreFix +'\n' + sedtext
       ax.text(xbox, ybox, sedtext, transform=ax.transAxes, **txtProp_copy)
