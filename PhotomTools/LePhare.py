@@ -18,11 +18,12 @@ default_txtProp = {'va':'top', 'ha':'left', 'multialignment':'left',
 # a symbol for magnitude upper limits
 downarrow = [(-2,0),(2,0),(0,0),(0,-4),(-2,-2),(2,-2),(0,-4),(0,0)]
 
-def scinote2exp(scinote):
+def scinote2exp(scinote, nprec=3):
    # convert scientific notation in the format of 1.0e10 into (1.0, 10)
    n = scinote.split('e')
+   fltstr = "%%.%df" % nprec
    if np.abs(int(n[1])) <= 2:
-      return "%.3f" % float(scinote)
+      return fltstr % float(scinote)
    else:
       # return float(n[0]), int(n[1])
       return "%.2f \\times 10^{%d}" % (float(n[0]), int(n[1]))
@@ -104,7 +105,6 @@ class LePhare(object):
             continue
          elif lines[i].startswith('# Type'):
             print "Reading best-fit properties..."
-            print lines[i]
             attributes = lines[i].split()[1:]
             nattr = len(attributes)
             # read the values for each SED type
@@ -445,7 +445,7 @@ class PlotLePhare(LePhare):
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
       age = scinote2exp('%e' % 10.**bestprop['Age'])
       sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
-      sfr = scinote2exp('%e' % bestprop['SFR'])
+      sfr = scinote2exp('%e' % 10.**(bestprop['SFR']), nprec=2)
       sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
       # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
       # Find the best-fit metallicity... only works for BC03 models!
@@ -532,7 +532,6 @@ def plot_HST_IRAC_all(objid, objname="", colors=['blue','red'], savefig=True, le
                           hatch='', color=colors[1], lw=2)
    Pzmax_irac = iracPlot.Pz.max()
    ymax = np.maximum(Pzmax_hst, Pzmax_irac) * 1.2
-   print "Pz max:", ymax
    ax2.set_ylim(0, ymax)
    # Put hatch around the confidence interval
    bp_hst = hstPlot.bestfitProps['GAL-1']
