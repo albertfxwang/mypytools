@@ -17,6 +17,9 @@ default_txtProp = {'va':'top', 'ha':'left', 'multialignment':'left',
                   'size':'x-large'}
 # a symbol for magnitude upper limits
 downarrow = [(-2,0),(2,0),(0,0),(0,-4),(-2,-2),(2,-2),(0,-4),(0,0)]
+# a list of model tau's (for exponentially declining SFH)
+tau_array = [0.1, 0.3, 1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 30.0]
+numTau = len(tau_array)
 
 def scinote2exp(scinote, nprec=3):
    # convert scientific notation in the format of 1.0e10 into (1.0, 10)
@@ -33,17 +36,91 @@ def scinote2exp(scinote, nprec=3):
 class LePhare(object):
    def __init__(self, paramfile):
       self.paramfile = paramfile
+      self.getCatOut()
+
+   def getCatOut(self):
+      assert len(self.paramfile) > 0, "No parameter file provided..."
+      with open(self.paramfile, 'rb') as f:
+         lines = f.readlines()
+         for line in lines:
+            if line.startswith('CAT_OUT'):
+               l = line.split()
+               self.catout = l[1]
+
+   def readCatOut(self):
+      """
+      Read the output catalog (CAT_OUT).
+      """
+      assert len(self.catout) > 0
+      columns = []
+      data = []
+      self.data = {}
+      with open(self.catout, 'rb') as f:
+         lines = f.readlines()
+      # n_hdr = 0
+      # n_line = 0
+      for i in range(len(lines)):
+         if lines[i].startswith('# AB'):
+            # read the filter names
+            bands = lines[i].strip().split()[2:]
+         elif lines[i].startswith('# Output format'):
+            # identified the start of header lines
+            n_hdr = i + 1
+            break
+      # print "bands:", bands
+      for i in range(n_hdr, len(lines)):
+         # read the column names
+         if lines[i].startswith('# '):
+            l_hdr = lines[i][1:].strip()
+            l_hdr = l_hdr.split(',')[:-1]
+            for l in l_hdr:
+               colname, colnum = l.split()
+               colnum = int(colnum)
+               # test if the column name jumps in number
+               if colname == 'STRING_INPUT':
+                  pass
+               elif colname != "MAG_ABS()":
+                  columns += [colname]
+               else:
+                  # these are the absolute magnitudes in all the filters
+                  for b in bands:
+                     columns += ['ABSMAG_' + b]
+         elif lines[i].startswith('###'):
+            # this is the line separating header and data
+            n_data = i + 1
+            break
+      # Now start reading data
+      for i in range(n_data, len(lines)):
+         l = lines[i].split()  # split the fields for each object
+         if len(l) == 0:
+            break
+         outlist = []
+         for entry in l:
+            try:
+               x = int(entry)
+            except:
+               x = float(entry)
+            outlist += [x]
+         data += [outlist]
+      # Now collect the results
+      for j in range(len(columns)):
+         self.data[columns[j]] = np.array(map(lambda x: x[j], data))
 
    def getSpecFile(self, objid):
       specfile = "Id%09d.spec" % objid
       return specfile
 
-   def readObject(self, objid, specdir='.'):
+   def readObjSpec(self, objid, specdir='.'):
       # construct the output spec file name from object ID, and delegate the 
       # work to self.readSpec
       self.objid = objid
+      curdir = os.getcwd()
+      os.chdir(specdir)
       specfile = self.getSpecFile(objid)
-      self.readSpec(specdir + '/' + specfile)
+      self.readSpec(specfile)
+      self.getCatOut()
+      self.readCatOut()
+      os.chdir(curdir)
 
    def readSpec(self, specfile):
       """
@@ -203,6 +280,7 @@ class MCLePhare(LePhare):
       self.inputcat = inputcat
       self.catHeader = ""
       self.catColumns = []
+      self.getCatOut()
 
    def readCatalog(self):
       # read the filters in the catalog
@@ -302,7 +380,7 @@ class MCLePhare(LePhare):
          # - SFR
          print "Collect the best-fit stellar pop values..."
          for objid in self.id:
-            self.readObject(objid, specdir='.')
+            self.readObjSpec(objid, specdir='.')
             bestProps = self.bestfitProps['GAL-1']  
             # restrict to the first galaxy component
             with open('MCOutput_OBJ%d.txt' % objid, 'ab') as log:
@@ -316,8 +394,14 @@ class MCLePhare(LePhare):
 
 class PlotLePhare(LePhare):
    ## Le Phare output is object by object
-   def __init__(self, objid, specdir='.'):
-      self.readObject(objid, specdir=specdir)
+   def __init__(self, objid, paramfile='', specdir='.'):
+      curdir = os.getcwd()
+      self.paramfile = paramfile
+      self.readObjSpec(objid, specdir=specdir)  # read the best-fit SED; I don't trust the best-fit parameters here, though!
+      # os.chdir(specdir)
+      # self.readCatOut() # read the best-fit physical parameters
+      self.objIndex = np.arange(len(self.data['IDENT']))[self.data['IDENT']==objid][0]
+      # os.chdir(curdir)
 
    def plot_Pz(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, hatch='\\', **plot_kwargs):
       plot_kwargs_copy = default_plot_kwargs.copy()
@@ -334,15 +418,16 @@ class PlotLePhare(LePhare):
       line = ax.plot(self.zarray, self.Pz, **plot_kwargs_copy)[0]
       ax.set_xlabel('LePhare Redshift')
       ax.set_ylabel(r'$P(z)$')
-      z_peak = self.photz  # NEED VERIFICATION!!
+      # z_peak = self.photz  # from SPEC output; NEED VERIFICATION!!
+      z_peak = self.data['Z_BEST'][self.objIndex]
       ax.set_title('Object %s [phot-z = %.3f]' % (self.objid, z_peak))
       # show the probability within the "1-sigma" range
-      bestprop = self.bestfitProps[sedtype]
-      zlow = bestprop['Zinf']
-      zhigh = bestprop['Zsup']
-      prob1sig = bestprop['PDF']
+      # bestprop = self.bestfitProps[sedtype] # read from SPEC output
+      # zlow = bestprop['Zinf']
+      # zhigh = bestprop['Zsup']
+      zlow = self.data['Z_BEST68_LOW'][self.objIndex]
+      zhigh = self.data['Z_BEST68_HIGH'][self.objIndex]
       pztext = 'Phot-z=%.3f (%.2f-%.2f)' % (self.photz, zlow, zhigh)
-      # pztext = 'Prob(%.2f-%.2f) = %.2f' % (zlow, zhigh, (prob1sig/100.))
       if len(txtPreFix):
          pztext = txtPreFix + '\n' + pztext
       ax.text(xbox, ybox, pztext, transform=ax.transAxes,
@@ -439,24 +524,36 @@ class PlotLePhare(LePhare):
             print "****************************************"
             print "Warning: best-fit SED type for ID=%s is %s!!" % (self.objid, modtype)
             print "****************************************"
-      bestprop = self.bestfitProps[sedtype]
-      mass = scinote2exp('%e' % 10.**bestprop['Mass'])
+      # bestprop = self.bestfitProps[sedtype]
+      logmass = self.data['MASS_BEST'][self.objIndex]
+      # mass = scinote2exp('%e' % 10.**bestprop['Mass'])
+      mass = scinote2exp('%e' % 10.**logmass)
       sedtext = "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % mass
-      sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
-      age = scinote2exp('%e' % 10.**bestprop['Age'])
+      # sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
+      sedtext = sedtext + "$E(B-V) = %.2f$\n" % self.data['EBV_BEST'][self.objIndex]
+      # age = scinote2exp('%e' % 10.**bestprop['Age'])
+      age = self.data['AGE_BEST'][self.objIndex]
+      age = scinote2exp('%e' % age, nprec=2)
       sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
-      sfr = scinote2exp('%e' % 10.**(bestprop['SFR']), nprec=2)
-      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
+      # num_model = bestprop['Model']
+      num_model = self.data['MOD_BEST'][self.objIndex]
+      # tau = tau_array[num_model % len(tau_array)]
+      # sedtext = sedtext + "$\\tau = %.1f\ \mathrm{[Gyrs]}$\n" % tau
+      # sfr = scinote2exp('%e' % 10.**(bestprop['SFR']), nprec=2)
+      logsfr = self.data['SFR_BEST'][self.objIndex]
+      sfr = scinote2exp('%e' % 10.**logsfr)
+      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$" % sfr
       # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
+      # ------------------------------------------------------------
       # Find the best-fit metallicity... only works for BC03 models!
-      metal = bestprop['Model']
-      if (metal <= 9):
-         Z = 0.2  # 0.2 Z_solar (m42 models)
-      elif (metal <= 18):
-         Z = 0.4  # 0.4 Z_solar (m52 models)
-      else:
-         Z = 1.0  # Z_solar (m62 models)
-      sedtext = sedtext + "$Z = %.2f\ Z_{\odot}$" % Z
+      # if (num_model <= 9):
+      #    Z = 0.2  # 0.2 Z_solar (m42 models)
+      # elif (num_model <= 18):
+      #    Z = 0.4  # 0.4 Z_solar (m52 models)
+      # else:
+      #    Z = 1.0  # Z_solar (m62 models)
+      # sedtext = sedtext + "$Z = %.2f\ Z_{\odot}$" % Z
+      # ------------------------------------------------------------
       if len(txtPreFix):
          sedtext = txtPreFix +'\n' + sedtext
       ax.text(xbox, ybox, sedtext, transform=ax.transAxes, **txtProp_copy)
@@ -490,20 +587,27 @@ class PlotLePhare(LePhare):
       plt.savefig("%s/%s_SED_Pz_lephare.png" % (outputdir, self.objid))
       return ax1, ax2
 
-def plot_HST_IRAC_all(objid, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname=""):
+def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, paramfile_sq, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname=""):
    # Use objid to find the LePhare output spec file (Idxxxxxxxxxx.spec)
    # objname will appear as the name in the figure title
    # colors[0] for HST_only, and colors[1] for with_IRAC
    # Must call this in the directory above hst_only/ and with_irac/
    specfile = "Id%09d.spec" % objid
+   objid_sq = int('10' + str(objid))
+   specfile_sq = "Id%09d.spec" % objid_sq
    fig = plt.figure(figsize=(10,12))
    ax1 = fig.add_subplot(211)
    ax1.set_xscale('log')
    ax1.set_yscale('log')
    ax2 = fig.add_subplot(212)
-   hstPlot = PlotLePhare(objid, 'hst_only')
+   print "Reading hst_only..."
+   hstPlot = PlotLePhare(objid, paramfile_hst, specdir='hst_only')
+   # hstPlot_sq = PlotLePhare(objid_sq, 'hst_only')
    # hstPlot = PlotLePhare('hst_only/%s' % specfile)
-   iracPlot = PlotLePhare(objid, 'with_irac')
+   print "Reading with_irac..."
+   iracPlot = PlotLePhare(objid, paramfile_irac, specdir='with_irac')
+   print "Reading star/qso..."
+   iracPlot_sq = PlotLePhare(objid_sq, paramfile_sq, specdir='with_irac')
    # iracPlot = PlotLePhare('with_irac/%s' % specfile)
    # First plot the photometry points with iracPlot only 
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
@@ -530,6 +634,13 @@ def plot_HST_IRAC_all(objid, objname="", colors=['blue','red'], savefig=True, le
                           txtPreFix='WITH IRAC:',
                           txtProp={'size':'x-large', 'bbox':dict(boxstyle='round,pad=0.3',facecolor='LightPink')},
                           hatch='', color=colors[1], lw=2)
+   # Check if STAR or QSO have better chi2 for this object than GAL-1
+   for sedtype in iracPlot_sq.bestfitProps.keys():
+      if iracPlot_sq.bestfitProps[sedtype]['Nline'] > 0:
+         if iracPlot_sq.bestfitProps[sedtype]['Chi2'] < iracPlot.bestfitProps['GAL-1']['Chi2']:
+            print "**********************************************************"
+            print "Warning: %s has lower chi2 than galaxy for object %d!!" % (   sedtype, objid)
+            print "**********************************************************"
    Pzmax_irac = iracPlot.Pz.max()
    ymax = np.maximum(Pzmax_hst, Pzmax_irac) * 1.2
    ax2.set_ylim(0, ymax)
