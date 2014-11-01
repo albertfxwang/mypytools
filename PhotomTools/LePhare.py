@@ -587,7 +587,7 @@ class PlotLePhare(LePhare):
       plt.savefig("%s/%s_SED_Pz_lephare.png" % (outputdir, self.objid))
       return ax1, ax2
 
-def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, paramfile_sq, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname=""):
+def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname=""):
    # Use objid to find the LePhare output spec file (Idxxxxxxxxxx.spec)
    # objname will appear as the name in the figure title
    # colors[0] for HST_only, and colors[1] for with_IRAC
@@ -601,13 +601,17 @@ def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, paramfile_sq, objnam
    ax1.set_yscale('log')
    ax2 = fig.add_subplot(212)
    print "Reading hst_only..."
-   hstPlot = PlotLePhare(objid, paramfile_hst, specdir='hst_only')
+   hstPlot = PlotLePhare(objid, 'lephare_%s_hst_only_bc03.param'%cluster_name, 
+                         specdir='hst_only')
    # hstPlot_sq = PlotLePhare(objid_sq, 'hst_only')
    # hstPlot = PlotLePhare('hst_only/%s' % specfile)
    print "Reading with_irac..."
-   iracPlot = PlotLePhare(objid, paramfile_irac, specdir='with_irac')
+   iracPlot = PlotLePhare(objid,'lephare_%s_with_irac_bc03.param'%cluster_name, 
+                          specdir='with_irac')
    print "Reading star/qso..."
-   iracPlot_sq = PlotLePhare(objid_sq, paramfile_sq, specdir='with_irac')
+   iracPlot_sq = PlotLePhare(objid_sq, 
+                             'lephare_%s_with_irac_bc03_starqso.param'%cluster_name, 
+                             specdir='with_irac')
    # iracPlot = PlotLePhare('with_irac/%s' % specfile)
    # First plot the photometry points with iracPlot only 
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
