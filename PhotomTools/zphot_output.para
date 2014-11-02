@@ -63,7 +63,7 @@ MAG_ABS()
 ####### INPUT INFO ##############
 CONTEXT
 ZSPEC
-STRING_INPUT		# This is everything after the spectral redshift (or whatever redshift you put in)
+#STRING_INPUT		# This is everything after the spectral redshift (or whatever redshift you put in)
 #######  Far-IR  PARAMETERS  derived from  FIR_LIB  library  ###########
 #LUM_TIR_BEST
 #LIB_FIR
