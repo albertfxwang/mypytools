@@ -32,7 +32,13 @@ class Distribution1D(object):
       cdf = np.cumsum(pdf)
       return [xgrid, cdf]
 
-   def conf_interval(self, xgrid, p=0.68, x0=None):
+   def minmax(self):
+      """
+      Return the (min, max) of self.values.
+      """
+      return self.values.min(), self.values.max()
+
+   def conf_interval(self, xgrid=100, p=0.68, x0=None):
       """
       Estimate the confidence interval for the estimated PDF, given the xgrid
       that the user provides to estimate the CDF.
@@ -42,15 +48,20 @@ class Distribution1D(object):
       compute the confidence interval, but checks if x0 lies within the 
       estimated interval. If not, it will print a warning message and does 
       nothing.
+      If xgrid is an integer, it is the number of steps in xgrid. xgrid then
+      is between 0.9 * self.values.min() and 1.1 * self.values.max()
       """
       ptail = (1. - p) / 2.  # the probilities in both tails
       pLow = ptail
       pHigh = 1. - ptail
-      print pLow, pHigh
+      if type(xgrid) == type(10):
+         vmin, vmax = self.minmax()
+         xgrid = np.linspace(vmin, vmax, xgrid+1)
       cdf = self.CDF(xgrid)[1]
       cdf = cdf / cdf.max()  # normalize max(CDF) to 1
       xinterval = np.sort(xgrid[(cdf >= pLow) & (cdf <= pHigh)])
       if x0 != None:
          if (x0 < xinterval[0]) or (x0 > xinterval[-1]):
             print "Warning: x0 is NOT within the interval [%.3f, %.3f]!!" % (xinterval[0], xinterval[-1])
+         print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (x0, (xinterval[-1]-x0), (x0-xinterval[0]))
       return xinterval[0], xinterval[-1]
