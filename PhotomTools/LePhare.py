@@ -280,9 +280,11 @@ class MCLePhare(LePhare):
       self.inputcat = inputcat
       self.catHeader = ""
       self.catColumns = []
-      self.getCatOut()
+      # self.getCatOut()
 
    def readCatalog(self):
+      # Read the input photometry catalog to LePhare, because we will 
+      # perturb the magnitudes later
       # read the filters in the catalog
       with open(self.inputcat, 'rb') as f:
          lines = f.readlines()
@@ -304,6 +306,7 @@ class MCLePhare(LePhare):
       Runs Monte Carlo sampling of the input photometry catalog, runs LePhare
       for each realization, and collect the set of values for stellar
       population properties.
+      We don't need to read the best-fit parameters for the input photometry.
       """
       # read the photometry of input catalog
       self.readCatalog()
@@ -379,13 +382,23 @@ class MCLePhare(LePhare):
          # - E(B-V)
          # - SFR
          print "Collect the best-fit stellar pop values..."
+         newrun = LePhare(newparamfile)
+         newrun.readCatOut()
          for objid in self.id:
-            self.readObjSpec(objid, specdir='.')
-            bestProps = self.bestfitProps['GAL-1']  
-            # restrict to the first galaxy component
+            # self.readObjSpec(objid, specdir='.')
+            # bestProps = self.bestfitProps['GAL-1']  
+            # Read the stellar pop. parameters from the output catalog
+            ## restrict to the first galaxy component
             with open('MCOutput_OBJ%d.txt' % objid, 'ab') as log:
+               j = np.arange(len(newrun.data['IDENT']))[newrun.data['IDENT']==objid][0]
                # the columns are ITER  PHOTZ  CHI2  AGE  EBMV  SMASS  SFR
-               outline = "%d  %.6f  %.6f  %.6e  %.6f  %.6e  %.6e" % (niter, self.photz, bestProps['Chi2'], bestProps['Age'], bestProps['EB-V'], bestProps['Mass'], bestProps['SFR'])
+               photz = newrun.data['Z_BEST'][j]
+               chi2 = newrun.data['CHI_BEST'][j]
+               age = newrun.data['AGE_BEST'][j]
+               ebmv = newrun.data['EBV_BEST'][j]
+               smass = newrun.data['MASS_BEST'][j]
+               sfr = newrun.data['SFR_BEST'][j]
+               outline = "%d  %.6f  %.6f  %.6e  %.6f  %.6e  %.6e" % (niter, photz, chi2, age, ebmv, smass, sfr)
                print >> log, outline
          # go back to the previous directory...
          print "Finished iteration %d." % niter
