@@ -295,7 +295,8 @@ class MCLePhare(LePhare):
                   # this is the header line
                   self.catHeader = copy.copy(l)
                   for l3 in l2[1:]:
-                     self.catColumns += [l3.lower()]
+                     if l3.lower() not in self.catColumns:
+                        self.catColumns += [l3.lower()]
                   break
       c = sextractor(self.inputcat)
       for i in range(len(self.catColumns)):
