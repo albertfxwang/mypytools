@@ -3,6 +3,29 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PhotomTools import LePhare as LP
+import os
+from pygoods import sextractor
+
+# Some default matplotlib stuff
+default_ebar_kwargs={'ms':12, 'marker':'.', 'mec':'black', 'mfc':'black', 
+                     'ecolor':'black', 
+                     'mew':1.2, 'capsize':9, 'capthick':1.5}
+default_plot_kwargs={'lw':1.3}
+default_txtProp = {'va':'top', 'ha':'left', 'multialignment':'left',
+                  'bbox':dict(boxstyle='round,pad=0.3',facecolor='LightCyan'),
+                  'size':'x-large'}
+# a symbol for magnitude upper limits
+downarrow = [(-2,0),(2,0),(0,0),(0,-4),(-2,-2),(0,-4),(2,-2),(0,-4),(0,0)]
+
+def scinote2exp(scinote, nprec=3):
+   # convert scientific notation in the format of 1.0e10 into (1.0, 10)
+   n = scinote.split('e')
+   fltstr = "%%.%df" % nprec
+   if np.abs(int(n[1])) <= 2:
+      return fltstr % float(scinote)
+   else:
+      # return float(n[0]), int(n[1])
+      return "%.2f \\times 10^{%d}" % (float(n[0]), int(n[1]))
 
 class PlotLePhare(LP.LePhare):
    ## Le Phare output is object by object
@@ -39,7 +62,8 @@ class PlotLePhare(LP.LePhare):
       # zhigh = bestprop['Zsup']
       zlow = self.data['Z_BEST68_LOW'][self.objIndex]
       zhigh = self.data['Z_BEST68_HIGH'][self.objIndex]
-      pztext = 'Phot-z=%.3f (%.2f-%.2f)' % (self.photz, zlow, zhigh)
+      # pztext = 'Phot-z=%.3f (%.2f-%.2f)' % (self.photz, zlow, zhigh)
+      pztext = 'Z_BEST = %.3f' % (self.photz)
       if len(txtPreFix):
          pztext = txtPreFix + '\n' + pztext
       ax.text(xbox, ybox, pztext, transform=ax.transAxes,
@@ -109,14 +133,10 @@ class PlotLePhare(LP.LePhare):
       if len(txtProp.keys()):
          for k in txtProp.keys():
             txtProp_copy[k] = txtProp[k]
-      l1 = ax.plot(self.wave, self.flux, 
-                   label='z=%.3f' % self.bestfitProps['GAL-1']['Zphot'], 
-                   **plot_kwargs_copy)
+      l1 = ax.plot(self.wave, self.flux,  **plot_kwargs_copy)
       if len(self.wave2) and plotGAL2:
          plot_kwargs_copy['ls'] = '--'
-         l2 = ax.plot(self.wave2, self.flux2, 
-                      label='z=%.3f' % self.bestfitProps['GAL-2']['Zphot'],
-                      **plot_kwargs_copy)
+         l2 = ax.plot(self.wave2, self.flux2, **plot_kwargs_copy)
          ax.legend(loc=4)
       nxticks = np.minimum(7, self.nfilters)
       log_lambda_ticks = np.linspace(np.log10(self.lambda_min / 0.8), 
@@ -168,7 +188,8 @@ class PlotLePhare(LP.LePhare):
       # ------------------------------------------------------------
       if len(txtPreFix):
          sedtext = txtPreFix +'\n' + sedtext
-      ax.text(xbox, ybox, sedtext, transform=ax.transAxes, **txtProp_copy)
+      if (xbox > 0) & (ybox > 0):
+         ax.text(xbox, ybox, sedtext, transform=ax.transAxes, **txtProp_copy)
       if savefig:
          fig.savefig("%s/%s_SED.png" % (output_dir, self.objid))
       return ax
@@ -199,7 +220,7 @@ class PlotLePhare(LP.LePhare):
       plt.savefig("%s/%s_SED_Pz_lephare.png" % (outputdir, self.objid))
       return ax1, ax2
 
-def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname=""):
+def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname="", hst_only_box=False):
    # Use objid to find the LePhare output spec file (Idxxxxxxxxxx.spec)
    # objname will appear as the name in the figure title
    # colors[0] for HST_only, and colors[1] for with_IRAC
@@ -213,7 +234,7 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
    ax1.set_yscale('log')
    ax2 = fig.add_subplot(212)
    print "Reading hst_only..."
-   hstPlot = PlotLePhare(objid, 'lephare_%s_hst_only_bc03.param'%cluster_name, 
+   hstPlot = PlotLePhare(objid,'lephare_%s_hst_only_bc03.param'%cluster_name, 
                          specdir='hst_only')
    # hstPlot_sq = PlotLePhare(objid_sq, 'hst_only')
    # hstPlot = PlotLePhare('hst_only/%s' % specfile)
@@ -229,15 +250,37 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
                               ebar_kwargs={'mec':'black','ecolor':'black'})
    # Now plot the best-fit SED from HST_only
-   ax1 = hstPlot.plot_SED(ax=ax1, savefig=False, xbox=0.05, ybox=0.95, 
+   if hst_only_box:
+      xbox_hst = 0.05
+      ybox_hst = 0.95
+      txtProp_hst = {'size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightCyan'),'ha':'left','va':'top'}
+   else:  # don't show the stellar pop parameters for HST_ONLY fit
+      xbox_hst = -1
+      ybox_hst = -1
+      txtProp_hst = {}
+   ax1 = hstPlot.plot_SED(ax=ax1, savefig=False, xbox=xbox_hst, ybox=ybox_hst,
+                          txtProp=txtProp_hst,
                           txtPreFix='HST ONLY:', 
-                          txtProp={'size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightCyan')}, 
-                          plotGAL2=False, color=colors[0], ls='--')
+                          plotGAL2=False, color=colors[0], ls='--',
+                          label='HST only')
    # Plot the best-fit SED from with_IRAC
-   ax1 = iracPlot.plot_SED(ax=ax1, savefig=False, xbox=0.95, ybox=0.05, 
+   if not hst_only_box:
+      xbox_irac = 0.05
+      ybox_irac = 0.95
+      txtProp_irac = {'va':'top','ha':'left','size':'large',
+                      'bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')}
+   else:
+      xbox_irac = 0.95
+      ybox_irac = 0.05
+      txtProp_irac = {'va':'bottom','ha':'right','size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')}
+   ax1 = iracPlot.plot_SED(ax=ax1, savefig=False, xbox=xbox_irac, 
+                           ybox=ybox_irac, 
+                           txtProp=txtProp_irac,
                            txtPreFix='WITH IRAC:',
-                           txtProp={'va':'bottom','ha':'right','size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')},
-                           color=colors[1])
+                           color=colors[1], label='With IRAC')
+   if not hst_only_box:
+      ax1.legend(loc=4)
+
    # Plot the P(z) curves from HST only
    ax2 = hstPlot.plot_Pz(ax=ax2, savefig=False, xbox=0.05, ybox=0.95, 
                          txtPreFix='HST ONLY:', 
@@ -263,24 +306,15 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
    # Put hatch around the confidence interval
    bp_hst = hstPlot.bestfitProps['GAL-1']
    bp_irac = iracPlot.bestfitProps['GAL-1']
-   ax2.fill_between([bp_hst['Zinf'], bp_hst['Zsup']], ymax*5, hatch='\\',
-                  edgecolor=colors[0], facecolor='none')
-   ax2.fill_between([bp_irac['Zinf'], bp_irac['Zsup']], ymax*5, hatch='/',
-                    edgecolor=colors[1], facecolor='none')
+   # ax2.fill_between([bp_hst['Zinf'], bp_hst['Zsup']], ymax*5, hatch='\\',
+   #                   edgecolor=colors[0], facecolor='none')
+   # ax2.fill_between([bp_irac['Zinf'], bp_irac['Zsup']], ymax*5, hatch='/',
+   #                  edgecolor=colors[1], facecolor='none')
    ax2.set_ylim(0, ymax)
    if len(objname):
       ax1.set_title('Object %s' % (objname), size=28)
-      # ax2.set_title('Object %s' % (objname))
    else:
       ax1.set_title('Object ID=%d' % objid, size=28)
-      # ax2.set_title('Object ID=%d' % objid)
-   # ax1, ax2 = hstPlot.plot_all(axes=[ax1,ax2], objname=objname, savefig=False,
-   #                         ebar_kwargs={'mec':colors[0],'ecolor':colors[0]},
-   #                         SED_plot_kwargs={'color':colors[0]})
-   
-   # ax1, ax2 = iracPlot.plot_all(axes=[ax1,ax2],objname=objname,savefig=False,
-   #                         ebar_kwargs={'mec':colors[1],'ecolor':colors[1]},
-   #                         SED_plot_kwargs={'color':colors[1]})
    plt.draw()
    if savefig:
       if len(outputname):
@@ -290,3 +324,83 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
       plt.savefig(outloc)
    return ax1, ax2
 
+## ------------------------------------------
+## Plot Monte Carlo results
+## ------------------------------------------
+class PlotMCLePhare(LP.MCLePhare):
+   def __init__(self, objid, paramfile):
+      self.paramfile = paramfile
+      self.getCatOut()
+      self.readCatOut()  # read the best-fit parameters for this object
+      self.readMCResults(objid)
+      self.confInt = self.calc_conf_intervals(objid)
+
+   def plot_hist(self, prop, ax=None, binwidth=0.1, **hist_kw):
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+      assert prop in self.MCresults.keys(), "Property %s not available from MC simulations." % prop
+      hist_kwargs = {'histtype':'step', 'lw':2, 'color':'black'}
+      for k in hist_kw.keys():
+         hist_kwargs[k] = hist_kw[k]
+
+      # Now read the data to plot
+      data = self.MCresults[prop]
+      data_range = data.max() - data.min()
+      hmin = data.min() - 0.02 * data_range
+      hmax = data.max() + 0.02 * data_range
+      bins = np.arange(hmin, hmax+binwidth, binwidth)
+
+      # Plot histogram
+      ax.hist(data, bins=bins, **hist_kwargs)
+      ax.set_xlabel(prop.upper())
+
+      return ax
+
+# Some default label texts (in LaTex format) for plots
+photz_label = "$\\mathrm{Photometric\\ Redshift}$"
+mass_label = '$\\log (M_{\\mathrm{stellar}}/\\mu)\\ [M_\\odot]$'
+sfr_label = '$\\log(\\mathrm{SFR})\\ [M_{\\odot}/\\mathrm{yr}]$'
+age_label = '$\\log(\\mathrm{AGE})\\ [\\mathrm{yrs}]$'
+ssfr_label = '$\\log(\\mathrm{sSFR})\\ [\\mathrm{yr}^{-1}]$'
+
+def plot_MC_hist(objid, paramfile, objname="", figsize=(10,10), keys=['photz','log_mass','log_ssfr','log_age'], xlabels=[photz_label,mass_label,ssfr_label,age_label], binwidths=[0.1,0.1,0.1,0.1], **hist_kw):
+   """
+   Plot the histograms from the MC simulations.
+   keys: the keys in the dictionary self.confInt, which are the properties 
+         that we calculated the confidence intervals for.
+   """
+   fig = plt.figure(figsize=figsize)
+   assert len(keys)==4
+   P = PlotMCLePhare(objid, paramfile)
+   axes = []
+   for i in range(4):
+      ax = fig.add_subplot(2, 2, i+1)
+      P.plot_hist(keys[i], ax=ax, binwidth=binwidths[i], label='With IRAC', 
+                  **hist_kw)
+      if i % 2 == 0:
+         ax.set_ylabel('Number of realizations', size='xx-large')
+      xticks = ax.get_xticks()
+      new_xticks = np.linspace(xticks[0], xticks[-1], 6)
+      
+      # Plot the best-fit values as well
+      xlims = ax.get_xlim()
+      ylims = ax.get_ylim()
+      xconf = P.confInt[keys[i]]
+      ax.errorbar([xconf[0]], np.mean(ylims), xerr=[[xconf[2]],[xconf[1]]],
+                  fmt='x', ecolor='red', mec='red', ms=12,
+                  mew=2, capsize=10)
+      ax.set_xticks(new_xticks)
+      ax.set_xticklabels(map(lambda x: '%.1f' % x, new_xticks))
+      ax.set_ylim(ylims)
+
+      axes += [ax]
+
+   # Re-set x-axis labels
+   if len(xlabels) > 0:
+      for i in range(4):
+         axes[i].set_xlabel(xlabels[i])
+   if len(objname):
+      fig.suptitle(objname, size=24)
+
+   return axes
