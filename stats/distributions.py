@@ -38,7 +38,7 @@ class Distribution1D(object):
       """
       return self.values.min(), self.values.max()
 
-   def conf_interval(self, xgrid=100, p=0.68, x0=None):
+   def conf_interval(self, xgrid=100, p=0.68, x0=None, print_it=False):
       """
       Estimate the confidence interval for the estimated PDF, given the xgrid
       that the user provides to estimate the CDF.
@@ -63,5 +63,5 @@ class Distribution1D(object):
       if x0 != None:
          if (x0 < xinterval[0]) or (x0 > xinterval[-1]):
             print "Warning: x0 is NOT within the interval [%.3f, %.3f]!!" % (xinterval[0], xinterval[-1])
-         print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (x0, (xinterval[-1]-x0), (x0-xinterval[0]))
+         if print_it: print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (x0, (xinterval[-1]-x0), (x0-xinterval[0]))
       return xinterval[0], xinterval[-1]
