@@ -6,30 +6,12 @@ import photomUtils as pu
 from scipy.integrate import cumtrapz
 from pygoods import sextractor
 import copy, os, sys, subprocess
+from stats import distributions as dist
 
-# Some default matplotlib stuff
-default_ebar_kwargs={'ms':12, 'marker':'.', 'mec':'black', 'mfc':'black', 
-                     'ecolor':'black', 
-                     'mew':1.2, 'capsize':9, 'capthick':1.5}
-default_plot_kwargs={'lw':1.3}
-default_txtProp = {'va':'top', 'ha':'left', 'multialignment':'left',
-                  'bbox':dict(boxstyle='round,pad=0.3',facecolor='LightCyan'),
-                  'size':'x-large'}
-# a symbol for magnitude upper limits
-downarrow = [(-2,0),(2,0),(0,0),(0,-4),(-2,-2),(2,-2),(0,-4),(0,0)]
+
 # a list of model tau's (for exponentially declining SFH)
 tau_array = [0.1, 0.3, 1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 30.0]
 numTau = len(tau_array)
-
-def scinote2exp(scinote, nprec=3):
-   # convert scientific notation in the format of 1.0e10 into (1.0, 10)
-   n = scinote.split('e')
-   fltstr = "%%.%df" % nprec
-   if np.abs(int(n[1])) <= 2:
-      return fltstr % float(scinote)
-   else:
-      # return float(n[0]), int(n[1])
-      return "%.2f \\times 10^{%d}" % (float(n[0]), int(n[1]))
 
 # Write a parent class for LePhare-related tasks, then subclasses for plotting 
 # and running MC sampling of photometry
@@ -105,6 +87,17 @@ class LePhare(object):
       # Now collect the results
       for j in range(len(columns)):
          self.data[columns[j]] = np.array(map(lambda x: x[j], data))
+
+   def readObjOutput(self, objid):
+      try:
+         j = np.arange(len(self.data['IDENT']))[self.data['IDENT']==objid][0]
+      except:
+         self.readCatOut()
+         j = np.arange(len(self.data['IDENT']))[self.data['IDENT']==objid][0]
+      output_dict = {}
+      for k in self.data.keys():
+         output_dict[k] = self.data[k][j]
+      return output_dict
 
    def getSpecFile(self, objid):
       specfile = "Id%09d.spec" % objid
@@ -405,4 +398,87 @@ class MCLePhare(LePhare):
          print "Finished iteration %d." % niter
          os.chdir(MainDIR)
       print "Monte Carlo simulations all done!"
+
+   def readMCResults(self, objid):
+      assert os.path.exists('MonteCarlo'), "The directory MonteCarlo does not exist."
+      c = sextractor('MonteCarlo/MCOutput_OBJ%d.txt' % objid)
+      self.MCresults = {}
+      self.MCresults['photz'] = c._2
+      self.MCresults['chi2'] = c._3
+      self.MCresults['log_age'] = np.log10(c._4)
+      self.MCresults['ebmv'] = c._5
+      self.MCresults['log_mass'] = c._6
+      self.MCresults['log_sfr'] = c._7
+      self.MCresults['log_ssfr'] = c._7 - c._6
+
+   def calc_conf_intervals(self, objid, xgrid=200, p=0.68, print_it=False):
+      """
+      Calculate the confidence intervals for the following properties:
+      - photo-z
+      - log10(AGE)
+      - log10(MASS)
+      - log10(SFR)
+      - log10(sSFR)
+      """
+      try:
+         objout_dict = self.readObjOutput(objid)
+      except:
+         self.getCatOut()
+         self.readCatOut()
+         objout_dict = self.readObjOutput(objid)  
+         # THE LePhare output for this object
+      self.readMCResults(objid)
+      confInt = {}
+      # confInt stores the best-fit values and distances to the upper and lower
+      # bounds of the confidence interval
+      # For example, if the confidence interval is between 5.5 and 6.5, with
+      # the best-fit value being 5.9, then 
+      # confInt['photz'] = [5.9, 0.6, 0.4]
+
+      # phot-z
+      photz_dist = dist.Distribution1D(self.MCresults['photz'])
+      photz_best = objout_dict['Z_BEST']
+      if print_it: print "Confidence interval for phot-z:"
+      photz_lo, photz_hi = photz_dist.conf_interval(xgrid=xgrid, p=p, 
+                                                    x0=photz_best)
+      confInt['photz'] = [photz_best, photz_hi-photz_best, photz_best-photz_lo]
+      if print_it: print ""
+
+      # log10(AGE)  [yr]
+      log_age_best = np.log10(objout_dict['AGE_BEST'])
+      log_age_dist = dist.Distribution1D(self.MCresults['log_age'])
+      if print_it: print "Confidence interval for log10(AGE):"
+      log_age_lo, log_age_hi = log_age_dist.conf_interval(xgrid=xgrid, p=p, 
+                                 x0=log_age_best, print_it=print_it)
+      confInt['log_age'] = [log_age_best, log_age_hi-log_age_best, log_age_best-log_age_lo]
+      if print_it: print ""
+
+      # log10(MASS)  [M_solar]
+      log_mass_best = objout_dict['MASS_BEST']
+      log_mass_dist = dist.Distribution1D(self.MCresults['log_mass'])
+      if print_it: print "Confidence interval for log10(MASS):"
+      log_mass_lo, log_mass_hi = log_mass_dist.conf_interval(xgrid=xgrid,
+                                 p=p, x0=log_mass_best, print_it=print_it)
+      confInt['log_mass'] = [log_mass_best, log_mass_hi-log_mass_best, log_mass_best-log_mass_lo]
+      if print_it: print ""
+
+      # log10(SFR)   [M_solar/yr]
+      log_sfr_best = objout_dict['SFR_BEST']
+      log_sfr_dist = dist.Distribution1D(self.MCresults['log_sfr'])
+      if print_it: print "Confidence interval for log10(SFR):"
+      log_sfr_lo, log_sfr_hi = log_sfr_dist.conf_interval(xgrid=xgrid, p=p,
+                                 x0=log_sfr_best, print_it=print_it)
+      confInt['log_sfr'] = [log_sfr_best, log_sfr_hi-log_sfr_best, log_sfr_best-log_sfr_lo]
+      if print_it: print ""
+
+      # log10(sSFR)   [yr^-1]
+      log_ssfr_best = log_sfr_best - log_mass_best
+      log_ssfr_dist = dist.Distribution1D(self.MCresults['log_sfr'] - self.MCresults['log_mass'])
+      if print_it: print "Confidence interval for log10(sSFR):"
+      log_ssfr_lo, log_ssfr_hi = log_ssfr_dist.conf_interval(xgrid=xgrid,
+                                 p=p, x0=log_ssfr_best, print_it=print_it)
+      confInt['log_ssfr'] = [log_ssfr_best, log_ssfr_hi-log_ssfr_best, log_ssfr_best-log_ssfr_lo]
+      if print_it: print ""
+
+      return confInt
 
