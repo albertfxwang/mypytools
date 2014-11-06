@@ -3,8 +3,9 @@ import numpy as np
 from scipy import optimize, stats, special
 from robust import MADN
 
-def gauss(x,m,sigma,normed=False):
-   sigma2 = sigma*sigma
+def gauss(x,m,sigma,normed=False,xstep=1):
+   sigma = sigma / xstep
+   sigma2 = sigma * sigma
    y = np.exp(-(x-m)**2/(2.*sigma2))/np.sqrt(2.*np.pi*sigma2)
    if normed:
      return y / np.sum(y)
