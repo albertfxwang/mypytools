@@ -11,7 +11,10 @@ from pysynphot import units
 _waveset = _buildDefaultWaveset()
 _waveset = 1.0/_waveset
 
-def computeTrans_C00(extval):
+def computeTrans_C00():
+   """
+   Calculate the attenuation curve k(lambda) for unit E(B-V).
+   """
    wave_um = _waveset
    wave0 = compress((wave_um<0.12),wave_um)
    wave1 = compress((wave_um>=0.12)*(wave_um<0.63),wave_um)
@@ -28,9 +31,17 @@ def computeTrans_C00(extval):
 class Calzetti00(_ExtinctionLaw):
    citation = 'Calzetti et al. 2000 (ApJ, 533, 682)'
    name = 'CALZETTI00'
-   def __init__(self, extval):
+   def __init__(self, ebmv):
+      """
+      Calculate the dust attenuation following the Calzetti+2000 relation,
+      parameterized by the E(B-V) of the stellar continuum. The relation in 
+      E(B-V) between the stellar and nebular attenuation is roughly
+      E(B-V)_stellar = (0.44 +/- 0.03) E(B-V)_neb
+      as given in Calzetti+2000.
+      """
       self._wavetable = _waveset.copy() * 10000.
-      self.transparencytable = 10.**(-0.4 * extval * computeTrans_C00(extval))
+      # self.A_lam = 0.4 * ebmv * computeTrans_C00()
+      self.transparencytable = 10.**(-1 * self.A_lam)
 
 class Extinction(spectrum.ArraySpectralElement):
    """extinction = Extinction(extinction in magnitudes,
