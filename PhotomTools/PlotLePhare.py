@@ -174,7 +174,9 @@ class PlotLePhare(LP.LePhare):
       # sfr = scinote2exp('%e' % 10.**(bestprop['SFR']), nprec=2)
       logsfr = self.data['SFR_BEST'][self.objIndex]
       sfr = scinote2exp('%e' % 10.**logsfr)
-      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$" % sfr
+      sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
+      ssfr = logsfr - logmass + 9.0  # in units of Gyr^-1
+      sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$" % (10.**ssfr)
       # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
       # ------------------------------------------------------------
       # Find the best-fit metallicity... only works for BC03 models!
