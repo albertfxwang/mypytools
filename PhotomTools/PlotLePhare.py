@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PhotomTools import LePhare as LP
+from PhotomTools import photomUtils as pu
 import os
 from pygoods import sextractor
 
@@ -118,7 +119,7 @@ class PlotLePhare(LP.LePhare):
          fig.savefig("%s/%s_photom.png" % (output_dir, self.objid))
       return ax
 
-   def plot_SED(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, plotGAL2=False, **plot_kwargs):
+   def plot_SED(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, plotGAL2=False, fluxunit='f_nu', **plot_kwargs):
       plot_kwargs_copy = default_plot_kwargs.copy()
       txtProp_copy = default_txtProp.copy()
       if ax == None:
@@ -150,6 +151,17 @@ class PlotLePhare(LP.LePhare):
       ax.set_ylabel(r'$F_{\nu}$ [$\mu$Jy]')
       ax.set_title('Object %s [phot-z = %.3f]' % (self.objid, self.photz), 
                    weight='bold')
+      # set y-axis labels
+      if fluxunit == 'abmag':
+         ylims = ax.get_ylim()
+         mag_lo = pu.uJy2ABmag(ylims[0])
+         mag_hi = pu.uJy2ABmag(ylims[1])
+         yticks_mag = np.arange(np.ceil(mag_lo), mag_hi, -1.0)
+         yticks_flux = pu.ABmag2uJy(yticks_mag)
+         ax.set_yticks(yticks_flux)
+         ax.set_yticklabels(["%d" % int(x) for x in yticks_mag])
+         ax.set_ylabel('Observed magnitude')
+
       # Also display the best-fit SED properties... 
       for modtype in self.bestfitProps.keys():
          if (self.bestfitProps[modtype]['Chi2'] > 0) and (self.bestfitProps[modtype]['Chi2'] < self.bestfitProps['GAL-1']['Chi2']):
@@ -211,7 +223,8 @@ class PlotLePhare(LP.LePhare):
                              ebar_kwargs=ebar_kwargs)
       ax1 = self.plot_SED(outputdir=outputdir, ax=ax1, savefig=False, 
                           txtProp=txtProp, txtPreFix=txtPreFix, 
-                          xbox=xbox, ybox=ybox, **SED_plot_kwargs)
+                          xbox=xbox, ybox=ybox, fluxunit='abmag', 
+                          **SED_plot_kwargs)
       ax2 = self.plot_Pz(outputdir=outputdir, ax=ax2, savefig=False,
                          xbox=xbox, ybox=ybox, txtProp=txtProp, 
                          txtPreFix=txtPreFix, **Pz_plot_kwargs)
@@ -262,7 +275,8 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
       txtProp_hst = {}
    ax1 = hstPlot.plot_SED(ax=ax1, savefig=False, xbox=xbox_hst, ybox=ybox_hst,
                           txtProp=txtProp_hst,
-                          txtPreFix='HST ONLY:', 
+                          txtPreFix='HST ONLY:',
+                          fluxunit='abmag', 
                           plotGAL2=False, color=colors[0], ls='--',
                           label='HST only')
    # Plot the best-fit SED from with_IRAC
@@ -279,6 +293,7 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
                            ybox=ybox_irac, 
                            txtProp=txtProp_irac,
                            txtPreFix='WITH IRAC:',
+                           fluxunit='abmag',
                            color=colors[1], label='With IRAC')
    if not hst_only_box:
       ax1.legend(loc=4)
