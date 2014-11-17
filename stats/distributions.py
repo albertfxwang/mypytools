@@ -62,6 +62,6 @@ class Distribution1D(object):
       xinterval = np.sort(xgrid[(cdf >= pLow) & (cdf <= pHigh)])
       if x0 != None:
          if (x0 < xinterval[0]) or (x0 > xinterval[-1]):
-            print "Warning: x0 is NOT within the interval [%.3f, %.3f]!!" % (xinterval[0], xinterval[-1])
+            print "Warning: x0 (%.3f) is NOT within the interval [%.3f, %.3f]!!" % (x0, xinterval[0], xinterval[-1])
          if print_it: print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (x0, (xinterval[-1]-x0), (x0-xinterval[0]))
       return xinterval[0], xinterval[-1]
