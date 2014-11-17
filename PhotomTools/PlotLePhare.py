@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from PhotomTools import LePhare as LP
 from PhotomTools import photomUtils as pu
 import os
@@ -175,10 +176,6 @@ class PlotLePhare(LP.LePhare):
       sedtext = "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % mass
       # sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % self.data['EBV_BEST'][self.objIndex]
-      # age = scinote2exp('%e' % 10.**bestprop['Age'])
-      age = self.data['AGE_BEST'][self.objIndex]
-      age = scinote2exp('%e' % age, nprec=2)
-      sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
       # num_model = bestprop['Model']
       num_model = self.data['MOD_BEST'][self.objIndex]
       # tau = tau_array[num_model % len(tau_array)]
@@ -188,7 +185,13 @@ class PlotLePhare(LP.LePhare):
       sfr = scinote2exp('%e' % 10.**logsfr)
       sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
       ssfr = logsfr - logmass + 9.0  # in units of Gyr^-1
-      sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$" % (10.**ssfr)
+      sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$\n" % (10.**ssfr)
+      # age = scinote2exp('%e' % 10.**bestprop['Age'])
+      # age = self.data['AGE_BEST'][self.objIndex]
+      ## Below ONLY WORKS FOR CONSTANT SFH!!!
+      age = 10.**(logmass - logsfr)
+      age = scinote2exp('%e' % age, nprec=2)
+      sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$" % age
       # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
       # ------------------------------------------------------------
       # Find the best-fit metallicity... only works for BC03 models!
@@ -203,6 +206,8 @@ class PlotLePhare(LP.LePhare):
       if len(txtPreFix):
          sedtext = txtPreFix +'\n' + sedtext
       if (xbox > 0) & (ybox > 0):
+         # only add text box with best-fit SED properties if both xbox and
+         # ybox are positive
          ax.text(xbox, ybox, sedtext, transform=ax.transAxes, **txtProp_copy)
       if savefig:
          fig.savefig("%s/%s_SED.png" % (output_dir, self.objid))
@@ -235,7 +240,7 @@ class PlotLePhare(LP.LePhare):
       plt.savefig("%s/%s_SED_Pz_lephare.png" % (outputdir, self.objid))
       return ax1, ax2
 
-def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname="", hst_only_box=False):
+def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname="", textbox=True, hst_only_box=False):
    # Use objid to find the LePhare output spec file (Idxxxxxxxxxx.spec)
    # objname will appear as the name in the figure title
    # colors[0] for HST_only, and colors[1] for with_IRAC
@@ -265,14 +270,19 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
                               ebar_kwargs={'mec':'black','ecolor':'black'})
    # Now plot the best-fit SED from HST_only
-   if hst_only_box:
-      xbox_hst = 0.05
-      ybox_hst = 0.95
-      txtProp_hst = {'size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightCyan'),'ha':'left','va':'top'}
-   else:  # don't show the stellar pop parameters for HST_ONLY fit
-      xbox_hst = -1
-      ybox_hst = -1
-      txtProp_hst = {}
+   xbox_hst = -1
+   ybox_hst = -1
+   txtProp_hst = {}
+   if textbox:
+      if hst_only_box:
+         xbox_hst = 0.05
+         ybox_hst = 0.95
+         txtProp_hst = {'size':'large','bbox':dict(boxstyle='round,pad=0.5',   facecolor='LightCyan'),'ha':'left','va':'top'}
+      else:  # don't show the stellar pop parameters for HST_ONLY fit
+         xbox_hst = -1
+         ybox_hst = -1
+         txtProp_hst = {}
+
    ax1 = hstPlot.plot_SED(ax=ax1, savefig=False, xbox=xbox_hst, ybox=ybox_hst,
                           txtProp=txtProp_hst,
                           txtPreFix='HST ONLY:',
@@ -280,15 +290,19 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
                           plotGAL2=False, color=colors[0], ls='--',
                           label='HST only')
    # Plot the best-fit SED from with_IRAC
-   if not hst_only_box:
-      xbox_irac = 0.05
-      ybox_irac = 0.95
-      txtProp_irac = {'va':'top','ha':'left','size':'large',
-                      'bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')}
-   else:
-      xbox_irac = 0.95
-      ybox_irac = 0.05
-      txtProp_irac = {'va':'bottom','ha':'right','size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')}
+   xbox_irac = -1
+   ybox_irac = -1
+   txtProp_irac = {}
+   if textbox:
+      if not hst_only_box:
+         xbox_irac = 0.05
+         ybox_irac = 0.95
+         txtProp_irac = {'va':'top','ha':'left','size':'large',
+                         'bbox':dict(boxstyle='round,pad=0.5',facecolor='   LightPink')}
+      else:
+         xbox_irac = 0.95
+         ybox_irac = 0.05
+         txtProp_irac = {'va':'bottom','ha':'right','size':'large','bbox':dict(boxstyle='round,pad=0.5',facecolor='LightPink')}
    ax1 = iracPlot.plot_SED(ax=ax1, savefig=False, xbox=xbox_irac, 
                            ybox=ybox_irac, 
                            txtProp=txtProp_irac,
@@ -369,19 +383,24 @@ class PlotMCLePhare(LP.MCLePhare):
       bins = np.arange(hmin, hmax+binwidth, binwidth)
 
       # Plot histogram
-      ax.hist(data, bins=bins, **hist_kwargs)
+      h = ax.hist(data, bins=bins, **hist_kwargs)
       ax.set_xlabel(prop.upper())
 
-      return ax
+      return ax, h[0]
 
 # Some default label texts (in LaTex format) for plots
+photz_text = "$z_{\\mathrm{phot}} = %.2f^{+%.2f}_{-%.2f}$"
 photz_label = "$\\mathrm{Photometric\\ Redshift}$"
-mass_label = '$\\log (M_{\\mathrm{stellar}}/\\mu)\\ [M_\\odot]$'
-sfr_label = '$\\log(\\mathrm{SFR})\\ [M_{\\odot}/\\mathrm{yr}]$'
+mass_text = "$\\log (\\mu M_{\\mathrm{stellar}}) = %.2f^{+%.2f}_{-%.2f}\\ [M_\\odot]$"
+mass_label = '$\\log (\\mu M_{\\mathrm{stellar}})\\ [M_\\odot]$'
+sfr_text = "$\\log(\\mu \\mathrm{SFR}) = %.2f^{+%.2f}_{-%.2f}\\ [M_{\\odot}/\\mathrm{yr}]$"
+sfr_label = '$\\log(\\mu \\mathrm{SFR})\\ [M_{\\odot}/\\mathrm{yr}]$'
+age_text = "$\\log(\\mathrm{AGE}) = %.2f^{+%.2f}_{-%.2f}\\ [\\mathrm{yrs}]$"
 age_label = '$\\log(\\mathrm{AGE})\\ [\\mathrm{yrs}]$'
+ssfr_text = "$\\log(\\mathrm{sSFR}) = %.2f^{+%.2f}_{-%.2f}\\ [\\mathrm{yr}^{-1}]$"
 ssfr_label = '$\\log(\\mathrm{sSFR})\\ [\\mathrm{yr}^{-1}]$'
 
-def plot_MC_hist(objid, paramfile, objname="", figsize=(10,10), keys=['photz','log_mass','log_ssfr','log_age'], xlabels=[photz_label,mass_label,ssfr_label,age_label], binwidths=[0.1,0.1,0.1,0.1], **hist_kw):
+def plot_MC_hist(objid, cluster_name, objname="", figsize=(10,10), keys=['photz','log_mass','log_ssfr','log_age'], xlabels=[photz_label,mass_label,  ssfr_label,age_label], addtext=False, texts=[photz_text,mass_text,ssfr_text,age_text],binwidths=[0.1,0.1,0.1,0.1], hst_color='0.5', legendLoc=2, **hist_kw):
    """
    Plot the histograms from the MC simulations.
    keys: the keys in the dictionary self.confInt, which are the properties 
@@ -389,27 +408,53 @@ def plot_MC_hist(objid, paramfile, objname="", figsize=(10,10), keys=['photz','l
    """
    fig = plt.figure(figsize=figsize)
    assert len(keys)==4
-   P = PlotMCLePhare(objid, paramfile)
+   param_hst = 'lephare_%s_hst_only_bc03.param' % cluster_name.lower()
+   param_irac = 'lephare_%s_with_irac_bc03.param' % cluster_name.lower()
+   curdir = os.getcwd()
+   os.chdir('hst_only')
+   P_hst = PlotMCLePhare(objid, param_hst)
+   os.chdir('../with_irac')
+   P_irac = PlotMCLePhare(objid, param_irac)
+   os.chdir(curdir)
    axes = []
    for i in range(4):
       ax = fig.add_subplot(2, 2, i+1)
-      P.plot_hist(keys[i], ax=ax, binwidth=binwidths[i], label='With IRAC', 
-                  **hist_kw)
+      ax, h_irac = P_irac.plot_hist(keys[i], ax=ax, binwidth=binwidths[i], 
+                       label='With IRAC', **hist_kw)
+      ylims = [0, h_irac.max()]
+      print "ylims:", ylims
+      ax, h_hst = P_hst.plot_hist(keys[i], ax=ax, binwidth=binwidths[i],
+                     histtype='bar', color=hst_color, alpha=0.2,
+                     label='HST only')
       if i % 2 == 0:
          ax.set_ylabel('Number of realizations', size='xx-large')
+      if i == 0:
+         ax.legend(loc=legendLoc, 
+                   prop=mpl.font_manager.FontProperties(size='large'))
       xticks = ax.get_xticks()
       new_xticks = np.linspace(xticks[0], xticks[-1], 6)
       
       # Plot the best-fit values as well
-      xlims = ax.get_xlim()
-      ylims = ax.get_ylim()
-      xconf = P.confInt[keys[i]]
-      ax.errorbar([xconf[0]], np.mean(ylims), xerr=[[xconf[2]],[xconf[1]]],
-                  fmt='x', ecolor='red', mec='red', ms=12,
+      # xlims = ax.get_xlim()
+      # ylims = ax.get_ylim()
+      xconf_hst = P_hst.confInt[keys[i]]
+      xconf_irac = P_irac.confInt[keys[i]]
+      # ax.errorbar([xconf_hst[0]], np.mean(ylims)/2.,
+      #             xerr=[[xconf_hst[2]],[xconf_hst[1]]],
+      #             fmt='x', ecolor=hst_color, mec=hst_color, ms=12,
+      #             mew=2, capsize=10)
+      ax.errorbar([xconf_irac[0]], np.mean(ylims), 
+                  xerr=[[xconf_irac[2]],[xconf_irac[1]]],
+                  fmt='d', ecolor='red', mfc='red', ms=12,
                   mew=2, capsize=10)
+      if addtext:
+         # Add text to the top-left corner
+         ax.text(0.05, 0.95, texts[i] % tuple(xconf_irac), ha='left', 
+                 va='top', transform=ax.transAxes,
+                 bbox=dict(boxstyle='round',facecolor='wheat'),size='large')
       ax.set_xticks(new_xticks)
       ax.set_xticklabels(map(lambda x: '%.1f' % x, new_xticks))
-      ax.set_ylim(ylims)
+      # ax.set_ylim(ylims)
 
       axes += [ax]
 
