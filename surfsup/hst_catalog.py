@@ -127,6 +127,13 @@ class HSTcatalog(fitstable.Ftable):
          magTot = 99.0
          magerrTot = magzero - 2.5 * np.log10(fluxerrTot)
       return magTot, magerrTot
+
+   def calc_color(self, objid, band1, band2, print_it=False):
+      mag1, magerr1 = self.get_mag(objid, band1, magform='iso')
+      mag2, magerr2 = self.get_mag(objid, band2, magform='iso')
+      color = mag1 - mag2
+      color_err = np.sqrt(magerr1**2 + magerr2**2)
+      return color, color_err
  
    def print_mag_objects(self, numbers, band, magform='auto'):
       # DOES include errors in aperture correction if magform != 'auto'
