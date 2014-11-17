@@ -246,6 +246,8 @@ class LePhare(object):
                   self.wave += [float(l[0])]
                   self.flux += [pu.ABmag2uJy(float(l[1]))]
                   j = j + 1
+            self.wave = np.array(self.wave)
+            self.flux = np.array(self.flux)
             if self.bestfitProps['GAL-2']['Nline'] > 0:
                # Also read a second galaxy SED
                print "Reading SED for GAL-2..."
@@ -257,11 +259,24 @@ class LePhare(object):
                      self.wave2 += [float(l[0])]
                      self.flux2 += [pu.ABmag2uJy(float(l[1]))]
                      j2 = j2 + 1
-            self.wave = np.array(self.wave)
-            self.flux = np.array(self.flux)
-            if len(self.wave2):
                self.wave2 = np.array(self.wave2)
                self.flux2 = np.array(self.flux2)
+               j = j + j2
+            if self.bestfitProps['QSO']['Nline'] > 0:
+               # read QSO component
+               self.wave3 = []
+               self.flux3 = []
+               print "Reading SED for QSO model..."
+               j3 = 0
+               while j3 < self.bestfitProps['QSO']['Nline']:
+                  if len(lines[i+j+j3].split()) == 2:
+                     # print i+j+j2
+                     l = lines[i+j+j3].split()
+                     self.wave3 += [float(l[0])]
+                     self.flux3 += [pu.ABmag2uJy(float(l[1]))]
+                     j3 = j3 + 1
+               self.wave3 = np.array(self.wave3)
+               self.flux3 = np.array(self.flux3)
             continue
 
 class MCLePhare(LePhare):
@@ -388,10 +403,11 @@ class MCLePhare(LePhare):
                # the columns are ITER  PHOTZ  CHI2  AGE  EBMV  SMASS  SFR
                photz = newrun.data['Z_BEST'][j]
                chi2 = newrun.data['CHI_BEST'][j]
-               age = newrun.data['AGE_BEST'][j]
                ebmv = newrun.data['EBV_BEST'][j]
                smass = newrun.data['MASS_BEST'][j]
                sfr = newrun.data['SFR_BEST'][j]
+               # age = newrun.data['AGE_BEST'][j]
+               age = smass / sfr  ## A KLUDGE THAT ONLY WORKS FOR CSF!!
                outline = "%d  %.6f  %.6f  %.6e  %.6f  %.6e  %.6e" % (niter, photz, chi2, age, ebmv, smass, sfr)
                print >> log, outline
          # go back to the previous directory...
@@ -405,11 +421,13 @@ class MCLePhare(LePhare):
       self.MCresults = {}
       self.MCresults['photz'] = c._2
       self.MCresults['chi2'] = c._3
-      self.MCresults['log_age'] = np.log10(c._4)
+      # self.MCresults['log_age'] = np.log10(c._4)
       self.MCresults['ebmv'] = c._5
       self.MCresults['log_mass'] = c._6
       self.MCresults['log_sfr'] = c._7
       self.MCresults['log_ssfr'] = c._7 - c._6
+      # This only works with constant SFH!!
+      self.MCresults['log_age'] = self.MCresults['log_mass'] - self.MCresults['log_sfr']
 
    def calc_conf_intervals(self, objid, xgrid=200, p=0.68, print_it=False):
       """
@@ -444,15 +462,6 @@ class MCLePhare(LePhare):
       confInt['photz'] = [photz_best, photz_hi-photz_best, photz_best-photz_lo]
       if print_it: print ""
 
-      # log10(AGE)  [yr]
-      log_age_best = np.log10(objout_dict['AGE_BEST'])
-      log_age_dist = dist.Distribution1D(self.MCresults['log_age'])
-      if print_it: print "Confidence interval for log10(AGE):"
-      log_age_lo, log_age_hi = log_age_dist.conf_interval(xgrid=xgrid, p=p, 
-                                 x0=log_age_best, print_it=print_it)
-      confInt['log_age'] = [log_age_best, log_age_hi-log_age_best, log_age_best-log_age_lo]
-      if print_it: print ""
-
       # log10(MASS)  [M_solar]
       log_mass_best = objout_dict['MASS_BEST']
       log_mass_dist = dist.Distribution1D(self.MCresults['log_mass'])
@@ -478,6 +487,17 @@ class MCLePhare(LePhare):
       log_ssfr_lo, log_ssfr_hi = log_ssfr_dist.conf_interval(xgrid=xgrid,
                                  p=p, x0=log_ssfr_best, print_it=print_it)
       confInt['log_ssfr'] = [log_ssfr_best, log_ssfr_hi-log_ssfr_best, log_ssfr_best-log_ssfr_lo]
+      if print_it: print ""
+
+      # log10(AGE)  [yr]
+      ## AGAIN: THIS ONLY WORKS FOR CONSTANT SFH!!!
+      # log_age_best = np.log10(objout_dict['AGE_BEST'])
+      log_age_best = objout_dict['MASS_BEST'] - objout_dict['SFR_BEST']
+      log_age_dist = dist.Distribution1D(self.MCresults['log_age'])
+      if print_it: print "Confidence interval for log10(AGE):"
+      log_age_lo, log_age_hi = log_age_dist.conf_interval(xgrid=xgrid, p=p, 
+                                 x0=log_age_best, print_it=print_it)
+      confInt['log_age'] = [log_age_best, log_age_hi-log_age_best, log_age_best-log_age_lo]
       if print_it: print ""
 
       return confInt
