@@ -15,6 +15,7 @@ from pysynphot import spectrum
 import os, copy, sys
 import cosmoclass
 import igmtrans
+import kcorr
 
 defwaveset = S.refs._default_waveset
 pytools = os.getenv('mypytools')
@@ -25,6 +26,7 @@ area_tenpc = 4.*np.pi*(10.*pc_cm)**2  # 4*pi*R**2 with R = 10 parsec in centimet
 
 
 class FileSED(spectrum.FileSourceSpectrum):
+   ## Made obsolete now with the new-found method in pysynphot?? (2014/11/17)
    def __init__(self, filename, fluxname=None, keepneg=False):
       # just use the definition from FileSourceSpectrum
       super(FileSED, self).__init__(filename, fluxname=fluxname, keepneg=keepneg)
@@ -122,9 +124,14 @@ class GalaxySEDFactory(object):
 
    def normalize_abmag(self, normmag, normband):
       if type(normband) in [type(0), type(0.0)]:
-         abmag = self.copy.ABmag_lambda(normband)
+         # abmag = self.copy.ABmag_lambda(normband)
+         filt = S.Box(normband, 100.)
+         obs = S.Observation(self.copy, filt)
+         abmag = obs.effstim('abmag')
       else:
-         abmag = self.copy.ABmag(normband)
+         # abmag = self.copy.ABmag(normband)
+         obs = S.Observation(self.copy, normband)
+         abmag = obs.effstim('abmag')
       dmag = normmag - abmag
       self.copy._fluxtable = self.copy._fluxtable * 10.**(-0.4 * dmag)
       self.normband = normband
@@ -210,25 +217,33 @@ class MConvertFile(GalaxySEDFactory):
    IGM attenuation effects if redshift is significant (i.e., almost always...)
    Also should include dust attenuation!!!
    """
-   def __init__(self, sedfile, restband, cosmo=cosmo_def, normmag=-21.0, ebmv=0.15):
-      self.factory = GalaxySEDFactory(sedfile, cosmo=cosmo, normmag=normmag, normband=restband)
+   def __init__(self, sedfile, restband, cosmo=cosmo_def, normmag=-21.0, ebmv=0.15, extlaw='xgal'):
+      # self.factory = GalaxySEDFactory(sedfile, cosmo=cosmo, normmag=normmag, normband=restband)
       self.Q = restband   # rest-frame filter
       self.normmag = normmag
       self.sedfile = sedfile
       self.ebmv = ebmv
-      print self.factory.sp.sample(1500.)
-      self.factory.sp.add_dust(ebmv)
-      print self.factory.sp.sample(1500.)
-      self.factory.reset()
+      self.extlaw = extlaw
+      # self.factory.sp.add_dust(ebmv)
+      # self.factory.reset()
+      self.cosmo = cosmo
 
    def __call__(self, z_range, obsband, outputfile):
       # Because m(z) = M + DM(z) + K_QR(z) := M + dm,
       # so dm = DM + K_QR.
       dm = np.zeros(len(z_range))
+      sp = S.FileSpectrum(self.sedfile)
+      dust = S.Extinction(self.ebmv, self.extlaw)
+      sp_ext = sp * dust
+      K = kcorr.KCorrect(sp_ext, self.Q, obsband, mode='AB')
       for i in range(len(z_range)):
-         m = self.factory.redshift(z_range[i]).ABmag(obsband)
-         dm[i] = m - self.normmag
-         self.factory.reset()
+         z = z_range[i]
+         ## Use my own (clumsy) way to compute dm
+         # m = self.factory.redshift(z_range[i]).ABmag(obsband)
+         # dm[i] = m - self.normmag
+         # self.factory.reset()
+         ## Use my implementation of Hogg et al. K-correction
+         dm[i] = self.cosmo.distmod(z) + K(z)
          if i % 20 == 0:
             sys.stdout.write('z = %.3f  \r' % z_range[i])
             sys.stdout.flush()
