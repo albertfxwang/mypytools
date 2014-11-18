@@ -1,0 +1,1 @@
+Scripts to run artificial-galaxy simulations with SExtractor + GALFIT, in order to quantify the size-measurement errors from GALFIT. These are the old scripts that I inherited from Harry/Swara. Newer versions are in mypytools/gfsim.

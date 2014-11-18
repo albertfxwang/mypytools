@@ -1,0 +1,1 @@
+Scripts that calculate the transfer function kernels for the bivariate size-luminosity distribution papers.

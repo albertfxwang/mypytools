@@ -1,0 +1,1 @@
+Scripts to run fake-source simulations with SExtractor. Also can estimate sky RMS levels by forcing SExtractor to put down apertures at empty regions.
