@@ -186,11 +186,8 @@ class PlotLePhare(LP.LePhare):
       sedtext = sedtext + "$\mathrm{SFR} = %s/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
       ssfr = logsfr - logmass + 9.0  # in units of Gyr^-1
       sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$\n" % (10.**ssfr)
-      # age = scinote2exp('%e' % 10.**bestprop['Age'])
-      # age = self.data['AGE_BEST'][self.objIndex]
-      ## Below ONLY WORKS FOR CONSTANT SFH!!!
-      age = 10.**(logmass - logsfr)
-      age = scinote2exp('%e' % age, nprec=2)
+      age = self.data['AGE_BEST'][self.objIndex]
+      age = scinote2exp('%e' % age)
       sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$" % age
       # sedtext = sedtext + "$\chi_{\\nu}^2$ = %.2f" % bestprop['Chi2']
       # ------------------------------------------------------------
@@ -240,7 +237,7 @@ class PlotLePhare(LP.LePhare):
       plt.savefig("%s/%s_SED_Pz_lephare.png" % (outputdir, self.objid))
       return ax1, ax2
 
-def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname="", textbox=True, hst_only_box=False):
+def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, objname="", colors=['blue','red'], savefig=True, legend_loc=2, outputdir='.', outputname="", textbox=True, hst_only_box=False):
    # Use objid to find the LePhare output spec file (Idxxxxxxxxxx.spec)
    # objname will appear as the name in the figure title
    # colors[0] for HST_only, and colors[1] for with_IRAC
@@ -254,17 +251,15 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
    ax1.set_yscale('log')
    ax2 = fig.add_subplot(212)
    print "Reading hst_only..."
-   hstPlot = PlotLePhare(objid,'lephare_%s_hst_only_bc03.param'%cluster_name, 
-                         specdir='hst_only')
+   hstPlot = PlotLePhare(objid, paramfile_hst, specdir='hst_only')
    # hstPlot_sq = PlotLePhare(objid_sq, 'hst_only')
    # hstPlot = PlotLePhare('hst_only/%s' % specfile)
    print "Reading with_irac..."
-   iracPlot = PlotLePhare(objid,'lephare_%s_with_irac_bc03.param'%cluster_name, 
-                          specdir='with_irac')
-   print "Reading star/qso..."
-   iracPlot_sq = PlotLePhare(objid_sq, 
-                             'lephare_%s_with_irac_bc03_starqso.param'%cluster_name, 
-                             specdir='with_irac')
+   iracPlot = PlotLePhare(objid,paramfile_irac, specdir='with_irac')
+   # print "Reading star/qso..."
+   # iracPlot_sq = PlotLePhare(objid_sq, 
+   #                           'lephare_%s_with_irac_bc03_starqso.param'%cluster_name, 
+   #                           specdir='with_irac')
    # iracPlot = PlotLePhare('with_irac/%s' % specfile)
    # First plot the photometry points with iracPlot only 
    ax1 = iracPlot.plot_photom(ax=ax1, savefig=False, 
@@ -325,12 +320,12 @@ def plot_HST_IRAC_all(objid, cluster_name, objname="", colors=['blue','red'], sa
                           txtProp={'size':'x-large', 'bbox':dict(boxstyle='round,pad=0.3',facecolor='LightPink')},
                           hatch='', color=colors[1], lw=2)
    # Check if STAR or QSO have better chi2 for this object than GAL-1
-   for sedtype in iracPlot_sq.bestfitProps.keys():
-      if iracPlot_sq.bestfitProps[sedtype]['Nline'] > 0:
-         if iracPlot_sq.bestfitProps[sedtype]['Chi2'] < iracPlot.bestfitProps['GAL-1']['Chi2']:
-            print "**********************************************************"
-            print "Warning: %s has lower chi2 than galaxy for object %d!!" % (   sedtype, objid)
-            print "**********************************************************"
+   # for sedtype in iracPlot_sq.bestfitProps.keys():
+   #    if iracPlot_sq.bestfitProps[sedtype]['Nline'] > 0:
+   #       if iracPlot_sq.bestfitProps[sedtype]['Chi2'] < iracPlot.bestfitProps['GAL-1']['Chi2']:
+   #          print "**********************************************************"
+   #          print "Warning: %s has lower chi2 than galaxy for object %d!!" % (   sedtype, objid)
+   #          print "**********************************************************"
    Pzmax_irac = iracPlot.Pz.max()
    ymax = np.maximum(Pzmax_hst, Pzmax_irac) * 1.2
    ax2.set_ylim(0, ymax)
