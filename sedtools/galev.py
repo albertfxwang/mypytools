@@ -9,6 +9,11 @@ from scipy.interpolate import interp1d
 
 pc_cm = 3.0857e18  # 1 parsec in cm
 area_10pc = 4. * np.pi * (10 * pc_cm)**2
+L_solar = 3.826e33  # erg / s
+fluxConv = area_10pc / L_solar
+bc03_normfactor = 3311392.37190254
+# bc03_normfactor is the normalization in "flux" from the BC03 output 
+# (in L_solar / A) to erg/s/cm^2/A, which is the output unit from GALEV
 
 def writeTemplates(specFile, statFile, root=None, overwrite=True, ageUniverse=13.8, tempdir='/Users/khuang/Dropbox/codes/phot_z/eazy/GALEV'):
    """
@@ -17,6 +22,8 @@ def writeTemplates(specFile, statFile, root=None, overwrite=True, ageUniverse=13
    goes before the _spec.data in the library file name.
    Also read the physical property file and add stellar masses, gas masses, 
    SFR, and metallicity (Z) to each file.
+   NOTE: if we're gonna mix it with the BC03 models in Le Phare, we should 
+   convert the fluxes to L_solar / A, which is the unit for BC03 models?
    """
    specFile = os.path.split(specFile)[-1]
    statFile = os.path.split(statFile)[-1]
@@ -43,6 +50,7 @@ def writeTemplates(specFile, statFile, root=None, overwrite=True, ageUniverse=13
       l = lines[i+3].split()
       # print "len(l):", len(l)
       wavetable[i] = float(l[1])
+      # fluxtable[i] = [float(y) * fluxConv for y in l[2:]]
       fluxtable[i] = [float(y) for y in l[2:]]
    # Also read the physical properties
    GMass = np.zeros(numAges)  # Gas mass
