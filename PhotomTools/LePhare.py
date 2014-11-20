@@ -406,8 +406,8 @@ class MCLePhare(LePhare):
                ebmv = newrun.data['EBV_BEST'][j]
                smass = newrun.data['MASS_BEST'][j]
                sfr = newrun.data['SFR_BEST'][j]
-               # age = newrun.data['AGE_BEST'][j]
-               age = smass / sfr  ## A KLUDGE THAT ONLY WORKS FOR CSF!!
+               age = newrun.data['AGE_BEST'][j]
+               # age = smass / sfr  ## A KLUDGE THAT ONLY WORKS FOR CSF!!
                outline = "%d  %.6f  %.6f  %.6e  %.6f  %.6e  %.6e" % (niter, photz, chi2, age, ebmv, smass, sfr)
                print >> log, outline
          # go back to the previous directory...
@@ -421,13 +421,13 @@ class MCLePhare(LePhare):
       self.MCresults = {}
       self.MCresults['photz'] = c._2
       self.MCresults['chi2'] = c._3
-      # self.MCresults['log_age'] = np.log10(c._4)
+      self.MCresults['log_age'] = np.log10(c._4)
       self.MCresults['ebmv'] = c._5
       self.MCresults['log_mass'] = c._6
       self.MCresults['log_sfr'] = c._7
       self.MCresults['log_ssfr'] = c._7 - c._6
       # This only works with constant SFH!!
-      self.MCresults['log_age'] = self.MCresults['log_mass'] - self.MCresults['log_sfr']
+      # self.MCresults['log_age'] = self.MCresults['log_mass'] - self.MCresults['log_sfr']
 
    def calc_conf_intervals(self, objid, xgrid=200, p=0.68, print_it=False):
       """
@@ -491,8 +491,8 @@ class MCLePhare(LePhare):
 
       # log10(AGE)  [yr]
       ## AGAIN: THIS ONLY WORKS FOR CONSTANT SFH!!!
-      # log_age_best = np.log10(objout_dict['AGE_BEST'])
-      log_age_best = objout_dict['MASS_BEST'] - objout_dict['SFR_BEST']
+      log_age_best = np.log10(objout_dict['AGE_BEST'])
+      # log_age_best = objout_dict['MASS_BEST'] - objout_dict['SFR_BEST']
       log_age_dist = dist.Distribution1D(self.MCresults['log_age'])
       if print_it: print "Confidence interval for log10(AGE):"
       log_age_lo, log_age_hi = log_age_dist.conf_interval(xgrid=xgrid, p=p, 
