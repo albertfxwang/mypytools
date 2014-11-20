@@ -102,8 +102,9 @@ class GalaxySEDFactory(object):
       self.cosmo = cosmo
       # manipulate self.copy, leave alone self.sp
       self.copy = copy.deepcopy(self.sp)  
-      # Now, normalize the SED to AB = normmag at rest-frame wavelength normwave
-      self.normalize_abmag(normmag, normband)
+      if normmag < 99.0:
+         # Now, normalize the SED to AB = normmag at rest-frame wavelength normwave
+         self.normalize_abmag(normmag, normband)
       self.normmag = normmag
       self.normband = normband
       self.ebmv = 0.
