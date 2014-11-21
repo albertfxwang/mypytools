@@ -174,8 +174,17 @@ class PlotLePhare(LP.LePhare):
       # mass = scinote2exp('%e' % 10.**bestprop['Mass'])
       mass = scinote2exp('%e' % 10.**logmass)
       sedtext = "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % mass
-      # sedtext = sedtext + "$E(B-V) = %.2f$\n" % bestprop['EB-V']
-      sedtext = sedtext + "$E(B-V) = %.2f$\n" % self.data['EBV_BEST'][self.objIndex]
+      # A kludge that only works with library BC03_EMLINE_surfsup
+      ebmv_best = self.data['EBV_BEST'][self.objIndex]
+      mod_best = self.data['MOD_BEST'][self.objIndex]
+      if mod_best <= 180:
+         if mod_best % 3 == 1:
+            ebmv_best = 0.
+         elif mod_best % 3 == 2:
+            ebmv_best = 0.1
+         else:
+            ebmv_best = 0.2
+      sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv_best
       # num_model = bestprop['Model']
       num_model = self.data['MOD_BEST'][self.objIndex]
       # tau = tau_array[num_model % len(tau_array)]
