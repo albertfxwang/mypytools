@@ -365,7 +365,7 @@ class MCLePhare(LePhare):
                lines2[i2] = ' '.join(l2) + '\n'
             elif lines2[i2].startswith('PARA_OUT'):
                l2 = lines2[i2].split()
-               print l2
+               # print l2
                if not os.path.exists('MonteCarlo/%s' % l2[1]):
                   os.system('cp %s MonteCarlo/%s' % (l2[1], l2[1]))
                # l2[1] = "%s" % l2[1]
