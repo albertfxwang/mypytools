@@ -128,6 +128,27 @@ class SkyRMSSim(sextractor_sim.SExtractorSim):
 
 datum = time.strftime("%m%d",time.localtime())
 
+def merge_sim_catalogs(catalogs, output):
+   """
+   Merge simulated catalogs from each run. Assume that they all have the same
+   columns!!
+   """
+   with open(output, 'wb') as f:
+      head = 0
+      for cat in catalogs:
+         with open(cat, 'rb') as c:
+            lines = c.readlines()
+         if head == 0:
+            for l in lines:
+               f.write(l)
+            head = 1
+         else:
+            for l in lines:
+               if l[0] != '#':
+                  f.write(l)
+   print "Done."
+
+
 def run_skyrms_sim(parfile, plot=False):
    sim = SkyRMSSim(parfile)
    while sim.n < sim.nstop:
