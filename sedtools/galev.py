@@ -149,6 +149,9 @@ def calc_phys_prop(specfile):
    # return [age, LUV, LR, LK, LIR, SMass, SFR, Z, tau, D4000]
 
 def write_phys_prop(specfiles, statFile, physfile, tau=1.e9):
+   """
+   To make a *.phys file for Le Phare.
+   """
    # Manual input tau (should be improved later!!)
    s2 = sextractor(statFile)
    ff = open(physfile, 'wb')  # the *.phys file
