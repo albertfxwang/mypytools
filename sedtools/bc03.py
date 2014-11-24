@@ -184,7 +184,7 @@ def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=
             if l[0] == '#':
                header += l
          f.close()
-      np.savetxt(outputfile, np.array([sp.wave, sp.flux]).T, fmt='%.4f %.10f',
+      np.savetxt(outputfile, np.array([sp.wave, sp.flux]).T, fmt='%.4f %e',
                  delimiter='   ', header=header)
       # f = open(outputfile, 'wb')
       # if write_header:
@@ -198,7 +198,7 @@ def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=
       # f.close()
    return sp
 
-def generate_templates(specfiles, ebmv=[]):
+def generate_templates(specfiles, fluxunit='Lsolar', ebmv=[]):
    """
    Generate a library of templates. Add nebular emission and add dust if 
    necessary.
@@ -208,13 +208,37 @@ def generate_templates(specfiles, ebmv=[]):
    for f in specfiles:
       print f
       if not len(ebmv):
-         sp = add_nebular_lines(f, f, ebmv=0)
+         sp = add_nebular_lines(f, f, fluxunit='Lsolar', ebmv=0)
       else:
          for i in range(len(ebmv)):
             outputfile = os.path.splitext(f)[0] + '_dust%.2f.sed' % ebmv[i]
             print outputfile
-            sp = add_nebular_lines(f, outputfile, ebmv=ebmv[i])
+            sp = add_nebular_lines(f, outputfile, fluxunit='Lsolar', ebmv=ebmv[i])
    print "Done."
+
+def read_age(filename):
+   """
+   Read the log(age) from the file name.
+   """
+   if 'age' not in filename:
+      print "String 'age' not in file name."
+      return 0
+   root = os.path.splitext(filename)[0]
+   log_age = root.split('age')[1]
+   log_age = log_age.split('_')[0]
+   return float(log_age)
+
+def read_tau(filename):
+   """
+   Read the tau from the file name.
+   """
+   if 'tau' not in filename:
+      print "String 'tau' not in file name."
+      return 0
+   root = os.path.splitext(filename)[0]
+   tau = root.split('tau')[1]
+   tau = tau.split('_')[0]
+   return float(tau)
 
 def calc_phys_prop(specfile):
    # Calculate, for each model spectrum, the physical properties to be used
@@ -231,7 +255,7 @@ def calc_phys_prop(specfile):
    return [LUV, LR, LK, D4000]
    # return [age, LUV, LR, LK, LIR, SMass, SFR, Z, tau, D4000]
 
-def write_phys_prop(specfiles, physprop_file, physfile, tau=1.e9, Z=0.004):
+def write_phys_prop(specfiles, physprop_file, physfile, tau_default=1.e9, Z=0.004):
    """
    To make a *.phys file for Le Phare.
    """
@@ -256,6 +280,9 @@ def write_phys_prop(specfiles, physprop_file, physfile, tau=1.e9, Z=0.004):
       age = 10.**float(log_age)
       SMass = s2._7[k]
       SFR = s2._10[k]
+      tau = read_tau(f)
+      if tau == 0:
+         tau = tau_default
       # first, write a dummy line
       ff.write("%d  %d " % (i, j))
       ff.write("%.6E  %.6E  %.6E  " % (-1, -99, -99))
@@ -274,6 +301,30 @@ def write_phys_prop(specfiles, physprop_file, physfile, tau=1.e9, Z=0.004):
       i += 1
       j += 1
    ff.close()
+
+def merge_physfiles(physfiles, outputfile):
+   """
+   Merge *.phys read from different BC03 models. Need to take care of the 
+   indexing to match those in the template list file in Le Phare.
+   """
+   mod_count = 1
+   line_count = 1
+   lines_all = []
+   for phys in physfiles:
+      with open(phys, 'rb') as f:
+         lines = f.readlines()
+         for i in range(len(lines)):
+            l = lines[i].split()
+            l = [str(line_count), str(mod_count)] + l[2:]
+            lines_all += ["  ".join(l) + "\n"]
+            if line_count % 2 == 0:
+               mod_count += 1
+            line_count += 1
+   # Now write to output
+   with open(outputfile, 'wb') as fout:
+      for j in range(len(lines_all)):
+         fout.write(lines_all[j])
+   print "Done."
 
 ### define a function that generates composite stellar population from BC03 code
 def gencsp(sspname,tau,cspname,dust='n',sf_hist=1,rcy='n',rcy_frac=0,max_age=20):
@@ -307,20 +358,81 @@ def genmod(cspname, age_min, age_max, wavemin=91.0, wavemax=1.6e6):
    propfile = os.path.splitext(cspname)[0] + '.4color'
    props = sextractor(propfile)
    log_age = props._1
+   smass = props._7
+   sfr = props._10
+   select = np.zeros(len(props), 'bool')
    cmd = os.getenv('bc03') + '/galaxevpl'
    f = subprocess.Popen([cmd], stdin=subprocess.PIPE)
+   filenames = []
    for i in range(len(log_age)):
       age = 10.**(log_age[i] - 9.)  # in Gyr
       if (age >= age_min) & (age < age_max):
+         select[i] = True
          print >> f.stdin, "%s" % cspname
          # print >> f.stdin, '%f, %f' % (wavemin, wavemax)   # enter the desired wavelength range
          print >> f.stdin, ""  # use the default value
          print >> f.stdin, "%f" % age   # should be in Gyr
          sedname = os.path.splitext(cspname)[0] + '_age%.4f.sed' % log_age[i]
          print >> f.stdin, "%s" % sedname
+         filenames += [sedname]
          # retcode = f.wait()
+   filenames = np.array(filenames)
    print f.poll()
+   return filenames, select
+   # return [filenames, log_age.take(select), smass.take(select), sfr.take(select)]
    #print retcode
+
+def write_eazy_templist(specfiles, log_age, templist, header="", abspath=True):
+   assert len(specfiles) == len(log_age)
+   N = len(specfiles)
+   if abspath == True:
+      curdir = os.getcwd()
+      specfiles = [os.path.join(curdir,x) for x in specfiles]
+   count = np.arange(1, len(specfiles) + 1)
+   ones = np.ones(len(specfiles))
+   np.savetxt(templist,
+      np.array([count,specfiles,ones,10.**(log_age-9.),ones]).T, 
+      fmt=['%s','%s','%s','%s','%s'], delimiter='  ', header=header)
+
+def write_eazy_physfile(specfiles, statfile, outputfile):
+   """
+   Write a *.phys file to find the best-fit physical properties for EAZY.
+   statfile should be the *.4color file output from BC03.
+   If I'm combining templates from different *.ised files, I'll have to merge
+   the *.phys files from each of them somehow...
+   """
+   s2 = sextractor(statfile)
+   log_age_list = np.array(["%.4f" % a for a in s2._1])
+   with open(outputfile, 'wb') as f:
+      f.write('# 1 FILENAME\n')
+      f.write('# 2 LOG_AGE\n')
+      f.write('# 3 SMASS\n')
+      f.write('# 4 SFR\n')
+      f.write('# 5 TAU [Gyr]\n')
+      f.write('# 6 EBMV\n')
+      for s in specfiles:
+         root = os.path.splitext(s)[0]
+         x = root.split('_')
+         tau = 1.0  # default value if can't read from the file name
+         ebmv = 0.0 # default value
+         # First find out the age
+         for y in x:
+            if 'age' in y.lower():
+               log_age = float(y[3:])
+               break
+         # Find the model index
+         k = np.arange(len(s2))[log_age_list==('%.4f'%log_age)][0]
+         smass = s2._7[k]
+         sfr = s2._10[k]
+         # Now try to read tau and ebmv from file name
+         for y in x:
+            if 'tau' in y:
+               tau = float(y[3:])
+            elif 'dust' in y:
+               ebmv = float(y[4:])
+         f.write('%s  %f  %e  %e  %f  %.2f\n' % (s, log_age, smass, sfr, tau, ebmv))
+   print "Done."
+
 
 def read4color(fname):
     if fname[-6:] != '4color':
