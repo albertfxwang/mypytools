@@ -34,13 +34,22 @@ class PlotLePhare(LP.LePhare):
    def __init__(self, objid, paramfile='', specdir='.'):
       curdir = os.getcwd()
       self.paramfile = paramfile
-      self.readObjSpec(objid, specdir=specdir)  # read the best-fit SED; I don't trust the best-fit parameters here, though!
+      self.readObjSpec(objid, specdir=specdir)  
+      # read the best-fit SED; I don't trust the best-fit parameters here...
+      if (self.bestfitProps['QSO']['Chi2'] < self.bestfitProps['GAL-1']['Chi2']) & (self.bestfitProps['QSO']['Chi2'] > 0):
+         self.sedtype = 'QSO'
+         self.photz = self.bestfitProps['QSO']['Zphot']
+         ## NOTE: the P(z) output from Le Phare applies only to the galaxy 
+         ## spectra!!
+      else:
+         self.sedtype = 'GAL-1'
       # os.chdir(specdir)
       # self.readCatOut() # read the best-fit physical parameters
       self.objIndex = np.arange(len(self.data['IDENT']))[self.data['IDENT']==objid][0]
       # os.chdir(curdir)
 
-   def plot_Pz(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, hatch='\\', **plot_kwargs):
+
+   def plot_Pz(self, outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, hatch='\\', **plot_kwargs):
       plot_kwargs_copy = default_plot_kwargs.copy()
       if len(plot_kwargs.keys()):
          for k in plot_kwargs.keys():
@@ -120,7 +129,7 @@ class PlotLePhare(LP.LePhare):
          fig.savefig("%s/%s_photom.png" % (output_dir, self.objid))
       return ax
 
-   def plot_SED(self, sedtype='GAL-1', outputdir='.', ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, plotGAL2=False, fluxunit='f_nu', **plot_kwargs):
+   def plot_SED(self, sedtype='GAL-1', outputdir='.', mode="bc03", ax=None, savefig=True, xbox=0.05, ybox=0.95, txtPreFix="", txtProp={}, plotGAL2=False, fluxunit='f_nu', **plot_kwargs):
       plot_kwargs_copy = default_plot_kwargs.copy()
       txtProp_copy = default_txtProp.copy()
       if ax == None:
@@ -135,7 +144,10 @@ class PlotLePhare(LP.LePhare):
       if len(txtProp.keys()):
          for k in txtProp.keys():
             txtProp_copy[k] = txtProp[k]
-      l1 = ax.plot(self.wave, self.flux,  **plot_kwargs_copy)
+      if self.sedtype == 'GAL-1':
+         l1 = ax.plot(self.wave, self.flux,  **plot_kwargs_copy)
+      elif self.sedtype == 'QSO':
+         l1 = ax.plot(self.wave3, self.flux3, **plot_kwargs_copy)
       if len(self.wave2) and plotGAL2:
          plot_kwargs_copy['ls'] = '--'
          l2 = ax.plot(self.wave2, self.flux2, **plot_kwargs_copy)
@@ -169,21 +181,20 @@ class PlotLePhare(LP.LePhare):
             print "****************************************"
             print "Warning: best-fit SED type for ID=%s is %s!!" % (self.objid, modtype)
             print "****************************************"
-      # bestprop = self.bestfitProps[sedtype]
       logmass = self.data['MASS_BEST'][self.objIndex]
-      # mass = scinote2exp('%e' % 10.**bestprop['Mass'])
       mass = scinote2exp('%e' % 10.**logmass)
       sedtext = "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % mass
       # A kludge that only works with library BC03_EMLINE_surfsup
       ebmv_best = self.data['EBV_BEST'][self.objIndex]
       mod_best = self.data['MOD_BEST'][self.objIndex]
-      if mod_best <= 180:
-         if mod_best % 3 == 1:
-            ebmv_best = 0.
-         elif mod_best % 3 == 2:
-            ebmv_best = 0.1
-         else:
-            ebmv_best = 0.2
+      if mode == "bc03":
+         if mod_best <= 180:
+            if mod_best % 3 == 1:
+               ebmv_best = 0.
+            elif mod_best % 3 == 2:
+               ebmv_best = 0.1
+            else:
+               ebmv_best = 0.2
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv_best
       # num_model = bestprop['Model']
       num_model = self.data['MOD_BEST'][self.objIndex]
@@ -254,6 +265,7 @@ def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, objname="", colors=[
    specfile = "Id%09d.spec" % objid
    objid_sq = int('10' + str(objid))
    specfile_sq = "Id%09d.spec" % objid_sq
+   print specfile
    fig = plt.figure(figsize=(10,12))
    ax1 = fig.add_subplot(211)
    ax1.set_xscale('log')
@@ -358,6 +370,33 @@ def plot_HST_IRAC_all(objid, paramfile_hst, paramfile_irac, objname="", colors=[
          outloc = '%s/obj%d_lephare_hst_irac.png' % (outputdir, objid)
       plt.savefig(outloc)
    return ax1, ax2
+
+def quickplot_bc03(objid, cluster_name):
+   param_hst = 'lephare_%s_hst_only_bc03.param' % cluster_name.lower()
+   param_irac = 'lephare_%s_with_irac_bc03.param' % cluster_name.lower()
+   axes1 = plot_HST_IRAC_all(objid, param_hst, param_irac, 
+      objname='%s-%d' % (cluster_name.upper(), objid), 
+      outputname='%s-%d_bc03_Pz_alltext.png' % (cluster_name.upper(), objid), 
+      textbox=True, hst_only_box=True)
+   axes2 = plot_HST_IRAC_all(objid, param_hst, param_irac,
+      objname='%s-%d' % (cluster_name.upper(), objid), 
+      outputname='%s-%d_bc03_Pz.png' % (cluster_name.upper(), objid), 
+      textbox=False, hst_only_box=False)
+   return axes1, axes2
+
+def quickplot_bc03_csf(objid, cluster_name):
+   new_id = int("40%d" % objid)
+   param_hst = 'lephare_%s_hst_only_bc03_csf.param' % cluster_name.lower()
+   param_irac = 'lephare_%s_with_irac_bc03_csf.param' % cluster_name.lower()
+   axes1 = plot_HST_IRAC_all(new_id, param_hst, param_irac, 
+      objname='%s-%d' % (cluster_name.upper(), objid), 
+      outputname='%s-%d_bc03_csf_Pz_alltext.png' % (cluster_name.upper(), objid), 
+      textbox=True, hst_only_box=True)
+   axes2 = plot_HST_IRAC_all(new_id, param_hst, param_irac,
+      objname='%s-%d' % (cluster_name.upper(), objid), 
+      outputname='%s-%d_bc03_csf_Pz.png' % (cluster_name.upper(), objid), 
+      textbox=False, hst_only_box=False)
+   return axes1, axes2
 
 ## ------------------------------------------
 ## Plot Monte Carlo results
