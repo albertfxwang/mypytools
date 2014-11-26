@@ -219,7 +219,8 @@ class HSTcatalog(fitstable.Ftable):
                   try:
                      mag, mag_err = self.get_mag(objid[i], b, magform='iso')
                   except:
-                     raise KeyError, "Filter %s does not exist in the catalog." % b
+                     # raise KeyError, "Filter %s does not exist in the catalog." % b
+                     mag, mag_err = 99.0, -99.0
                # Now format the magnitudes to comply with EAZY convention
                if mag > 90.:  # not detected
                   if mag_err > 0:  # there is flux limit; mag_err gives the 1-sigma limit
