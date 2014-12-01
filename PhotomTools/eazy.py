@@ -447,12 +447,12 @@ class MCEAZY(EAZY):
                with open(output_file, 'wb') as f:
                   f.write("# 1 NITER\n")
                   f.write('# 2 ZBEST\n')
-                  f.write('# 2 SMASS\n')
-                  f.write('# 3 LOG_AGE\n')
-                  f.write('# 4 SFR\n')
-                  f.write('# 5 TAU\n')
-                  f.write('# 6 EBMV\n')
-                  f.write('# 7 MOD_BEST\n')
+                  f.write('# 3 SMASS\n')
+                  f.write('# 4 LOG_AGE\n')
+                  f.write('# 5 SFR\n')
+                  f.write('# 6 TAU\n')
+                  f.write('# 7 EBMV\n')
+                  f.write('# 8 MOD_BEST\n')
             with open(output_file, 'ab') as f:
                f.write('%s  %f  %e  %e  %f  %f  %f  %d\n' % (i, zbest, mass, log_age, sfr, tau, ebmv, mod_best)) 
          print "Finish iteration %d." % i
