@@ -161,7 +161,7 @@ class PlotGalaxyColors(object):
       ax.set_ylabel('%s - %s' % (color1[0].upper(), color1[1].upper()))
       return ax
 
-   def mark_redshifts(self, zmarks, color1, color2, ax=None, decimal=1, tol=1.e-4, **scatter_kwargs):
+   def mark_redshifts(self, zmarks, color1, color2, ax=None, decimal=1, tol=1.e-4, zlabel=True, **scatter_kwargs):
       # zmarks are redshifts to be marked; has to be in ascending order, and
       # preferable in regular steps
       zindices = []
@@ -176,7 +176,7 @@ class PlotGalaxyColors(object):
             zindices += [j[0]]
             zmarked += [zmarks[i]]
       zindices = np.array(zindices)
-      zmarked = np.array(zmarked)
+      zmarked = np.array(zmarked); print zmarked
       c1 = self.get_color(*color1)
       c2 = self.get_color(*color2)
       c1_marked = c1.take(zindices)
@@ -184,7 +184,10 @@ class PlotGalaxyColors(object):
       zstr = "%%.%df" % decimal
       z0 = zstr % zmarks[0]
       z1 = zstr % zmarks[-1]
-      label = "z=%s ... %s" % (z0, z1)
+      if zlabel:
+         label = "z=%s ... %s" % (z0, z1)
+      else:
+         label = ""
       ax.scatter(c2_marked, c1_marked, label=label, **scatter_kwargs)
       # annotate the markers?
       return ax

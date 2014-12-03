@@ -39,10 +39,11 @@ lowz_magfiles = {'SB2': 'SB2colors_ext0.0_HST.dat',
                'Sbc': 'Sbccolors_ext0.0_HST.dat',
                'Scd': 'Scdcolors_ext0.0_HST.dat'}
 starcolors = 'star_colors.dat'
-markers_def = ['.', 'o', 'v', '^', '>', '<', '8', 's', 'p', 'D', 'h', 'd']
+markers_def = ['o', 'v', '^', '>', '<', '8', 's', 'p', 'D', 'h', 'd']
 p = pmscolors()
-colors_def = [p.Deep_Red, p.Bright_Red, p.Amber, p.Golden_Yellow, p.Olive_Green,
-          p.Lime, p.Turquoise, p.Periwinkle, p.Deep_Blue, p.Red_Purple]
+colors_def = [p.Olive_Green, p.Lime, p.Turquoise, p.Periwinkle, p.Deep_Blue, 
+               p.Red_Purple, p.Deep_Red, p.Bright_Red, p.Amber, 
+               p.Golden_Yellow]
 
 # Try using plot_colors.LBGPlotColorFactory
 class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
@@ -84,6 +85,7 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
             magfiles += [mf_name]
             labels += ['E(B-V)=%.2f' % ebmv[i]]
       self.zmarks = np.linspace(zcenter-1., zcenter+1., 5)
+      print self.zmarks
       if not starcolors:
          raise NotImplementedError, "Please calculate the expected stellar colors first..."
       super(LBGPlotFactory, self).__init__(magfiles, labels, self.zcenter, 
@@ -106,19 +108,28 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
       galtemp_colors.GalaxyTemplateColors(galtemplate, magfile, 
                      z0=z0, z1=z1, dz=dz, ebmv=ebmv, filters=lbg_filters)
 
-   def plot_tracks(self, zannotate=-1, sizeannotate='x-large', **kwargs):
+   def plot_tracks(self, ax=None, zannotate=-1, sizeannotate='xx-large', lowz_label=False, zlabel=True, offset=[-0.5,0.5], **plt_kwargs):
       if zannotate < 0:
          zannotate = self.zcenter
       ax = super(LBGPlotFactory, self).plot_tracks(self.color1, self.color2, 
-                  zmarks=self.zmarks, zannotate=zannotate, 
-                  sizeannotate=sizeannotate, **kwargs)
+                  ax=ax, zmarks=self.zmarks, zannotate=zannotate, 
+                  sizeannotate=sizeannotate, zlabel=zlabel, offset=offset, 
+                  **plt_kwargs)
+      ax = LBGPlotFactory.plot_lowz(self, self.color1, self.color2, ax=ax,
+                                    label=lowz_label, **plt_kwargs)
       return ax
 
-   def plot_all(self, field_name, critlabel="", critlabelsize='xx-large', xmin=-1, xmax=3, ymin=-1., ymax=9., **kwargs):
-      ax = self.plot_tracks(**kwargs)
+   def plot_all(self, field_name, figsize=(10,8), critlabel="", critlabelsize='xx-large', xmin=-1, xmax=3, ymin=-1., ymax=9., fc_cc='blue', alpha_cc=0.2, sizeannotate='xx-large', zannotate=None, lowz_label=False, zlabel=True, offset=[-0.5,0.5], **plt_kwargs):
+      fig = plt.figure(figsize=figsize)
+      ax = fig.add_subplot(111)
       ax.set_xlim(xmin, xmax)
       ax.set_ylim(ymin, ymax)
-      ax = self.plot_colorcrit(self.lcc, ax=ax)
+      ax = self.plot_colorcrit(self.lcc, ax, fc=fc_cc, alpha=alpha_cc)
+      ax = self.plot_tracks(zannotate=zannotate, sizeannotate=sizeannotate, 
+                            ax=ax, lowz_label=lowz_label, zlabel=zlabel, 
+                            offset=offset, **plt_kwargs)
+      ax.set_xlim(xmin, xmax)
+      ax.set_ylim(ymin, ymax)
       ax.set_title('%s-dropouts @ z~%.1f in %s' % (self.drop.upper(), self.zcenter, field_name))
       ax.set_xlabel(ax.get_xlabel(), size='xx-large')
       ax.set_ylabel(ax.get_ylabel(), size='xx-large')
@@ -162,8 +173,19 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
                                                 **ebar_kwargs)
       return ax
 
-   def plot_candidates(self, ax, c, objids, objnames=[], magform='iso', 
-                       markers=[], ncol_legend=1):
+   def plot_all_galaxies(self, ax, c, magform='iso', color='0.5', size=4, marker='o'):
+      """
+      Plot all galaxies in the field as tiny gray dots (or some other marker).
+      Input c should be a hst_catalog.HSTCatalog instance.
+      """
+      color1_all = [c.calc_color(x, self.color1[0], self.color1[1]) for x in c.number]
+      color1_all = np.array(color1_all)[:,0]
+      color2_all = [c.calc_color(x, self.color2[0], self.color2[1]) for x in c.number]
+      color2_all = np.array(color2_all)[:,0]
+      ax.scatter(color2_all, color1_all, color=color, s=size, marker=marker)
+      return ax
+
+   def plot_candidates(self, ax, c, objids, ms_show=14, objnames=[], magform='iso', markers=[], ncol_legend=1,objnames2show=[], marker_noshow='s', ms_noshow=8, color_noshow='black', **ebar_kwargs):
       # Re-start iterating markers... so markers are consistent for the same 
       # objects
       if len(markers):
@@ -175,10 +197,19 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
       if not len(objnames):
          objnames = map(lambda x: str(x), objids)
       for i in range(len(objnames)):
+         objLabel = ""
+         marker = marker_noshow
+         color = color_noshow
+         ms = ms_noshow
+         if objnames[i] in objnames2show:
+            objLabel = objnames[i]
+            marker = markers_iter.next()
+            color = colors_iter.next()
+            ms = ms_show
          ax = self.plot_galaxy(ax, c, objids[i], magform=magform, 
-                               label=objnames[i], ms=12, 
-                               color=colors_iter.next(), 
-                               fmt=markers_iter.next())
+                               label=objLabel, ms=ms, mew=2,
+                               color=color, 
+                               fmt=marker, **ebar_kwargs)
       ax.legend(loc=4, fontsize='medium', ncol=ncol_legend)
       plt.draw()
       return ax   
