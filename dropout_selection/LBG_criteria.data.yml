@@ -129,11 +129,11 @@ f814w_drop:
 
    MACS0454_2:
       ref: "Huang et al. 2014, in preparation"
-      criteria: "(i-Y)>=1.1 AND (Y-H)<=0.3"
+      criteria: "(i-Y)>=1.0 AND (Y-H)<=0.3"
       label: "MACS0454_2"
       bands: ["f814w", "f110w", "f160w"]
       coeffs:
-         - [1.1, 0.0]
+         - [1.0, 0.0]
       color2lim: 0.3
       eval: "(self.color1>=1.5) & (self.color2<=0.3)"
 

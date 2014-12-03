@@ -44,12 +44,35 @@ class LBGColorPlotFactory(object):
          P = gc.PlotGalaxyColors(self.magfiles[i])
          self.plots += [P]
       self.plots_lowz = {}
+      
+   def plot_lowz(self, color1, color2, ax=None, label=True, **plt_kwargs):
+      if ax==None:
+         fig = plt.figure(figsize=(10, 8))
+         ax = fig.add_subplot(111)
       for g in magfiles_lowz.keys():
          P = gc.PlotLowZColors(sedtools+'/'+magfiles_lowz[g])
          self.plots_lowz[g] = P
-      self.starlib = starlib.starlib(starcolors)
+         if label:
+            gal_label = g
+         else:
+            if g == magfiles_lowz.keys()[0]:
+               gal_label = "z<3 galaxies"
+            else:
+               gal_label = ""
+         ax = self.plots_lowz[g].plot_colors(color1, color2, z1=self.z0-1., 
+                                             label=gal_label, ax=ax, ls='--',
+                                             **plt_kwargs)
 
-   def plot_tracks(self, color1, color2, zmarks=None, zannotate=None, offset=(-0.5,0.5), legendloc=4, ax=None, title="", sizeannotate=14):
+      print self.plots_lowz.keys()
+      # Now plot stars
+      self.starlib = starlib.starlib(self.starcolors)
+      c1 = self.starlib.colors(*color1)
+      c2 = self.starlib.colors(*color2)
+      ax.scatter(c2, c1, marker='*', s=8**2, label='stars', 
+                 facecolor='yellow')
+      return ax
+
+   def plot_tracks(self, color1, color2, zmarks=None, zannotate=None, offset=(-0.5,0.5), legendloc=4, ax=None, title="", sizeannotate=14, zlabel=True, **plt_kwargs):
       if zmarks == None:
          self.zmarks = np.arange(self.z0, self.z1, 0.5)
       else:
@@ -60,42 +83,34 @@ class LBGColorPlotFactory(object):
       for i in range(len(self.plots)):
          ax = self.plots[i].plot_colors(color1, color2, z0=self.z0, 
                                         z1=self.z1, label=self.labels[i], 
-                                        ax=ax)
+                                        ax=ax, **plt_kwargs)
          if i == 0:
             ax = self.plots[i].mark_redshifts(self.zmarks, color1, color2, 
                                ax=ax, facecolor='none', edgecolor='red', 
-                               s=10**2, marker='o')
-            if zannotate != None:
+                               s=10**2, marker='o',lw=2, zlabel=zlabel)
+            if len(zannotate) > 0:
                c1 = self.plots[i].get_color(*color1)
                c2 = self.plots[i].get_color(*color2)
-               j = np.argsort(np.abs(self.plots[i].z - zannotate))[0]
-               x = c2[j]
-               y = c1[j]
-               xtext = x + offset[0]
-               ytext = y + offset[1]
-               ax.annotate('z=%.1f' % zannotate, xy=(x,y), 
-                           xytext=(xtext, ytext), size=sizeannotate, 
-                           arrowprops=dict(facecolor='black', arrowstyle='->'))
-      # Now plot low-z galaxies
-      for g in magfiles_lowz.keys():
-         ax = self.plots_lowz[g].plot_colors(color1, color2, z1=self.z0-1., 
-                                             label=g, ax=ax, ls='--')
-      # Now plot stars
-      c1 = self.starlib.colors(*color1)
-      c2 = self.starlib.colors(*color2)
-      ax.scatter(c2, c1, marker='*', s=8**2, label='stars', 
-                 facecolor='yellow')
+               for z in zannotate:
+                  j = np.argsort(np.abs(self.plots[i].z - z))[0]
+                  x = c2[j]
+                  y = c1[j]
+                  xtext = x + offset[0]
+                  ytext = y + offset[1]
+                  ax.annotate('z=%.1f' % z, xy=(x,y), 
+                              xytext=(xtext, ytext), size=sizeannotate, 
+                              arrowprops=dict(facecolor='black', arrowstyle='->')   )
       ax.legend(loc=legendloc, scatterpoints=1)
       ax.set_ylim(-1.,6.)
       ax.set_xlim(xmax=8.)
       ax.set_title(title)
       return ax
 
-   def plot_colorcrit(self, colorcrit, ax):
+   def plot_colorcrit(self, colorcrit, ax, fc='blue', alpha=0.2):
       xmin, xmax = ax.get_xlim()
       ymin, ymax = ax.get_ylim()
       colorcrit.plotcrit_fill(xmin, ymax, ax=ax, xmax_plot=xmax, 
-                              ymin_plot=ymin)
+                              ymin_plot=ymin, fc=fc, alpha=alpha)
       return ax
 
    def plot_galaxy(self, ax, color1, color1_err, color2, color2_err, **ebar_kwargs):
