@@ -456,3 +456,75 @@ class MCEAZY(EAZY):
             with open(output_file, 'ab') as f:
                f.write('%s  %f  %e  %e  %f  %f  %f  %d\n' % (i, zbest, mass, log_age, sfr, tau, ebmv, mod_best)) 
          print "Finish iteration %d." % i
+
+def fix_header(fname):
+   """
+   Fix the MC output catalog header.
+   """
+   header = ['# 1 NITER\n','# 2 ZBEST\n','# 3 SMASS\n','# 4 LOG_AGE\n',
+             '# 5 SFR\n','# 6 TAU\n','# 7 EBMV\n','# 8 MOD_BEST\n']
+   with open(fname) as f:
+      lines = f.readlines()
+   with open(fname, 'wb') as f2:
+      for i in range(len(header)):
+         f2.write(header[i])
+      for j in range(len(lines)):
+         if lines[j][0] != "#":
+            f2.write(lines[j])
+   print "Done."
+
+class Plot_MCEAZY(object):
+   def __init__(self, objname):
+      assert os.path.exists('hst_only')
+      assert os.path.exists('with_irac')
+      self.c1 = sextractor('hst_only/MonteCarlo/%s.mc' % objname)
+      self.c2 = sextractor('with_irac/MonteCarlo/%s.mc' % objname)
+      self.objname = objname
+
+   def hist_MCEAZY(self, prop, bins, ax=None, logprop=False, xlabel="", **hist_kwargs):
+      """
+      Plots the histograms of MC sampling results. Should be called in the 
+      directory above both hst_only and with_irac.
+      """
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+      assert hasattr(self.c1, prop), "Column '%s' not in the output catalog." % prop
+      x1 = getattr(self.c1, prop)
+      x2 = getattr(self.c2, prop)
+      if logprop:
+         x1 = np.log10(np.maximum(x1, 1e-3))
+         x2 = np.log10(np.maximum(x2, 1e-3))
+      h1 = ax.hist(x1, bins, lw=2, color='blue', label='hst_only',
+                   histtype='step', normed=True, **hist_kwargs)
+      h2 = ax.hist(x2, bins, lw=2, color='red', label='with_irac',
+                   histtype='step', normed=True, **hist_kwargs)
+      ax.set_xlabel(xlabel)
+      ax.set_title(self.objname)
+      ax.legend(loc=2)
+      return ax
+
+   def hist_all(self, **hist_kwargs):
+      """
+      Plots the histogram for photo-z (top-left), stellar mass (top-right),
+      SFR (bottom-left), and age (bottom-right).
+      """
+      fig = plt.figure(figsize=(12,9))
+      ax1 = fig.add_subplot(221)
+      self.hist_MCEAZY('zbest', np.arange(0.,11.,0.2), ax=ax1, 
+                       xlabel='Photo-z')
+      ax2 = fig.add_subplot(222)
+      self.hist_MCEAZY('smass', np.arange(7.,11.,0.1), logprop=True, ax=ax2,
+                       xlabel='log10(Stellar Mass)', **hist_kwargs)
+      ax3 = fig.add_subplot(223)
+      self.hist_MCEAZY('sfr', np.arange(-1.,4.,0.1), logprop=True, ax=ax3,
+                       xlabel='log10(SFR)', **hist_kwargs)
+      ax3.legend(loc=1)
+      ax4 = fig.add_subplot(224)
+      self.hist_MCEAZY('log_age', np.arange(7.,10.,0.1), ax=ax4,
+                       xlabel='log10(Age)', **hist_kwargs)
+      ax4.legend(loc=1)
+      for ax in [ax1, ax2, ax3, ax4]:
+         ax.set_title("")
+      plt.suptitle(self.objname, size=28)
+      return [ax1,ax2,ax3,ax4]
