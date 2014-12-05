@@ -116,7 +116,7 @@ def calc_nebular_continuum(logNLyc):
    neb_cont = neb_HI + neb_HeI + neb_2q
    return neb_cont
 
-def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=1.0, metalKey='Z3', clobber=False, verbose=False, write_header=False, continuum=True, ebmv=0., extlaw='xgal'):
+def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=1.0, metalKey='Z3', clobber=False, verbose=False, write_header=False, continuum=False, ebmv=0., extlaw='xgal'):
    """
    Add nebular emission lines to the model SED. The line strengths are 
    proportional to the Lyman continuum flux.
