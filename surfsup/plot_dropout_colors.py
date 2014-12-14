@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import starlib
 from bivariate2.plotting import plot_colors
 from dropout_selection import lbg_colorcrit as lcc
-from pmscolors import pmscolors
+# from pmscolors import pmscolors
 import itertools
 
 # f555w = S.ObsBandpass('acs,wfc2,f555w')
@@ -40,10 +40,10 @@ lowz_magfiles = {'SB2': 'SB2colors_ext0.0_HST.dat',
                'Scd': 'Scdcolors_ext0.0_HST.dat'}
 starcolors = 'star_colors.dat'
 markers_def = ['o', 'v', '^', '>', '<', '8', 's', 'p', 'D', 'h', 'd']
-p = pmscolors()
-colors_def = [p.Olive_Green, p.Lime, p.Turquoise, p.Periwinkle, p.Deep_Blue, 
-               p.Red_Purple, p.Deep_Red, p.Bright_Red, p.Amber, 
-               p.Golden_Yellow]
+# p = pmscolors()
+colors_def = ['Crimson','Green','DodgerBlue','HotPink','Lime','LightSkyBlue',
+               'OrangeRed','SeaGreen','SteelBlue','Tomato','Aquamarine',
+               'DarkOrchid']
 
 # Try using plot_colors.LBGPlotColorFactory
 class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
@@ -201,13 +201,17 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
          marker = marker_noshow
          color = color_noshow
          ms = ms_noshow
+         mew = 1
+         ebar_kwargs['elinewidth'] = 1
          if objnames[i] in objnames2show:
             objLabel = objnames[i]
             marker = markers_iter.next()
             color = colors_iter.next()
             ms = ms_show
+            mew = 2
+            ebar_kwargs['elinewidth'] = 2
          ax = self.plot_galaxy(ax, c, objids[i], magform=magform, 
-                               label=objLabel, ms=ms, mew=2,
+                               label=objLabel, ms=ms, mew=mew,
                                color=color, 
                                fmt=marker, **ebar_kwargs)
       ax.legend(loc=4, fontsize='medium', ncol=ncol_legend)
