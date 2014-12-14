@@ -1,0 +1,83 @@
+cluster_name: "Abell2744"
+image_dir: "/Users/khuang/Frontier_fields/A2744/hst"
+homedir: "/Users/khuang/Dropbox/Research/frontier_fields/A2744/hst"
+merged_table: "hst_a2744_60mas_hot_merged.fits"
+sexfile: "f160w_a2744_hot_60mas.sex"
+filters: ['f435w', 'f606w', 'f814w', 'f105w', 'f125w', 'f140w', 'f160w']
+# filters: ['f160w']
+detectband: 'f160w'
+scale: 0.06   # pixel scale in arcsec
+drz_images:  # use PSF-matched images (to F160W) for bands bluer than F160W
+   f435w: 'F435W_a2744_60mas_v1.0_cut_drz.fits'
+   f606w: 'F606W_a2744_60mas_v1.0_cut_drz.fits'
+   f814w: 'F814W_a2744_60mas_v1.0_cut_drz.fits'
+   f105w: 'F105W_a2744_60mas_v1.0_cut_drz.fits'
+   f125w: 'F125W_a2744_60mas_v1.0_cut_drz.fits'
+   f140w: 'F140W_a2744_60mas_v1.0_cut_drz.fits'
+   f160w: 'F160W_a2744_60mas_v1.0_cut_drz.fits'
+wht_images: 
+   f435w: 'F435W_a2744_60mas_v1.0_cut_wht.fits'
+   f606w: 'F606W_a2744_60mas_v1.0_cut_wht.fits'
+   f814w: 'F814W_a2744_60mas_v1.0_cut_wht.fits'
+   f105w: 'F105W_a2744_60mas_v1.0_cut_wht.fits'
+   f125w: 'F125W_a2744_60mas_v1.0_cut_wht.fits'
+   f140w: 'F140W_a2744_60mas_v1.0_cut_wht.fits'
+   f160w: 'F160W_a2744_60mas_v1.0_cut_wht.fits'
+   # f160w: 'F160W_PAR1_drz_scaled_rms.fits'
+wht_type: "MAP_WEIGHT"
+flg_images:
+   f435w: 'F435W_a2744_60mas_v1.0_cut_flg.fits'
+   f606w: 'F606W_a2744_60mas_v1.0_cut_flg.fits'
+   f814w: 'F814W_a2744_60mas_v1.0_cut_flg.fits'
+   f105w: 'F105W_a2744_60mas_v1.0_cut_flg.fits'
+   f125w: 'F125W_a2744_60mas_v1.0_cut_flg.fits'
+   f140w: 'F140W_a2744_60mas_v1.0_cut_flg.fits'
+   f160w: 'F160W_a2744_60mas_v1.0_cut_flg.fits'
+zeropoints:   # within an infinite aperture; same as calculated from PHOTFLAM and PHOTPLAM
+   # do NOT correct for extinction here... will be corrected in hst_pipeline.py 
+   f435w: 25.656
+   f606w: 26.483
+   f814w: 25.937
+   f105w: 26.259
+   f125w: 26.220
+   f140w: 26.442
+   f160w: 25.936
+ext_coeff:  # taken from CLASH paper (Postman et al. 2012) Table 5
+   f435w: 4.117
+   f606w: 2.929
+   f814w: 1.822
+   f105w: 1.015
+   f125w: 0.757
+   f140w: 0.609
+   f160w: 0.470
+ebmv_mean: 0.0175   # +/- 0.0009; for Abell2744
+apcor:
+   f435w: 0.0
+   f606w: 0.0
+   f814w: 0.0
+   f105w: 0.0
+   f125w: 0.0
+   f140w: 0.0
+   f160w: 0.0
+effgain:  # effective gain; = ccdgain * exptime
+   f435w: 32324.0
+   f606w: 26500.0
+   f814w: 26496.0
+   f105w: 172380.96
+   f125w: 82620.64
+   f140w: 70350.53
+   f160w: 170505.96
+# below are SExtractor parameters for the HOT/COLD modes
+detect_minarea: [8.0, 10.0]
+detect_thresh:  [1.5, 6.0]
+clean_param:    [1.0, 0.5]
+skyrms_factor:  # scaling factor for flux error within 0.4 arcsec aperture
+   f435w: 1.445
+   f606w: 1.455
+   f814w: 1.371
+   f105w: 1.834
+   f125w: 1.504
+   f140w: 1.482
+   f160w: 2.271
+# apercol: 'APER_1'  
+# the aperture suffix that has the right aperture size for flux errors
