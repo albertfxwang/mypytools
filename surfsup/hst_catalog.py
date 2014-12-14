@@ -3,9 +3,10 @@
 # Spawned from the HSTcatalog class originally from hst_pipeline.py
 
 import numpy as np
-from pygoods import fitstable, Ftable, sextractor
+from pygoods import fitstable, Ftable, sextractor, angsep
 from datetime import datetime
 from PhotomTools import photomUtils as pu
+from stats import stats_simple as ss
 
 # because Le Phare requires the input catalog contain magnitudes for each 
 # filter used to create the libraries, and I don't want to create libraries 
@@ -16,7 +17,7 @@ lephare_filters = ['f435w','f475w','f555w','f606w','f625w','f775w','f814w',\
                    'irac1','irac2']
 # For catalogs that include IRAC fluxes, manually edit the files to add IRAC
 # magnitudes/limits.
-clash_bands = ['f435w','f475w', 'f555w', 'f606w','f625w','f775w','f814w','f850lp','f105w','f110w','f125w','f140w','f160w']
+clash_bands = ['f435w','f475w', 'f555w', 'f606w','f625w','f775w','f814w','f850lp','f098m','f105w','f110w','f125w','f140w','f160w']
 
 
 class HSTcatalog(fitstable.Ftable):
@@ -50,7 +51,21 @@ class HSTcatalog(fitstable.Ftable):
             SIGN = "-"
          dec_str = delimiter.join([SIGN+'%02d'%abs(int(dec[0])),'%02d'%abs(int(dec[1])),'%02.2f'%abs(dec[2])])
          return [ra_str, dec_str]
- 
+
+   def match_radec(self, ra, dec, tol=0.5, ra_col='alpha_j2000', dec_col='delta_j2000'):
+      """
+      Given values of RA, DEC, find the closest object within some match
+      radius (tol) in arcsec. Returns the SExtractor ID number.
+      """
+      racol = getattr(self, ra_col)
+      deccol = getattr(self, dec_col)
+      angdist = angsep.angsep(ra, dec, racol, deccol)
+      if angdist.min() * 3600. > tol:
+         return -1
+      else:
+         j = np.argsort(angdist)[0]
+         return self.number[j]
+
    def print_apcor(self, number, colorcol='iso', refband='f160w', print_it=True):
       # print the aperture correction from the mag. form for colors (default=ISO)
       # to the AUTO mag., using the reference band (refband)
@@ -134,6 +149,26 @@ class HSTcatalog(fitstable.Ftable):
       color = mag1 - mag2
       color_err = np.sqrt(magerr1**2 + magerr2**2)
       return color, color_err
+
+   def calc_all_colors(self, objid, bands):
+      for i in range(len(bands) - 1):
+         color, color_err = self.calc_color(objid, bands[i], bands[i+1])
+         print "%s-%s = %.3f +/- %.3f" % (bands[i],bands[i+1],color,color_err)
+
+   def test_same_color(self, objid1, objid2, bands):
+      """
+      Test if all the colors from objid1 and objid2 are consistent within 
+      errors.
+      """
+      print "Comparing colors between %d and %d:" % (objid1, objid2)
+      for i in range(len(bands) - 1):
+         b1 = bands[i]
+         b2 = bands[i+1]
+         color1, color_err1 = self.calc_color(objid1, b1, b2)
+         color2, color_err2 = self.calc_color(objid2, b1, b2)
+         same = ss.consistent_sigma(color1, color_err1, color2, color_err2)
+         print "%s-%s are consistent? %s." % (b1, b2, str(same))
+
  
    def print_mag_objects(self, numbers, band, magform='auto'):
       # DOES include errors in aperture correction if magform != 'auto'
@@ -197,7 +232,7 @@ class HSTcatalog(fitstable.Ftable):
          f.write('fk5; circle(%f, %f, %.2f") # text={%d}\n' % (ra, dec, radius, x))
       f.close()
  
-   def print_eazy_flux(self, header, objid, detect_band='f160w', SNLim=3.0):
+   def print_eazy_flux(self, header, objid, detect_band='f160w', SNLim=1.0):
       # Provide a header line for the flux catalog to be fed into EAZY, print 
       # the fluxes and errors in uJy for the objects specified in objid
       # First, parse the header line; assume it starts with #
@@ -263,8 +298,13 @@ class HSTcatalog(fitstable.Ftable):
      if print_it:
         print "%.6e  %.6e" % (flux, fluxerr)
      return flux, fluxerr
+
+   def irac_mag_to_uJy_2bands(self, mag2, mag2err, mag1, mag1err):
+      flux2, flux2err = self.irac_mag_to_uJy(mag2, mag2err, print_it=False)
+      flux1, flux1err = self.irac_mag_to_uJy(mag1, mag1err, print_it=False)
+      return "%.6e  %.6e  %.6e  %.6e" % (flux2, flux2err, flux1, flux1err)
  
-   def write_LePhare_flux(self, objid, filterNames=lephare_filters, refBand='f160w', output="", SNLim=3.0):
+   def write_LePhare_flux(self, objid, filterNames=lephare_filters, refBand='f160w', output="", SNLim=1.0):
       """
       Write a photometric catalog in the format accepted by Le Phare photo-z code.
       Works for CAT_TYPE = SHORT. Assume CAT_MAG = AB and CAT_FMT = MEME.
@@ -302,13 +342,13 @@ class HSTcatalog(fitstable.Ftable):
                else:
                   #test if S/N>=SNLim
                   SN = pu.magerr2sn(magErr)
-                  print objid[i], fname, SN
+                  print objid[i], fname, SN, mag, magErr
                   if SN < SNLim:
                      # flux = pu.ABmag2uJy(mag)
                      # flux_1sig = flux / SN
                      # flux_nsig = flux_1sig * SNLim
                      # mag = pu.uJy2ABmag(flux_nsig)
-                     mag = pu.calcNsigMag(mag, magErr)
+                     mag = pu.calcNsigMag(mag, magErr, N=SNLim)
                      magErr = -1.0
                   print mag, magErr
                # Now append to objString
