@@ -231,8 +231,22 @@ class TPHOTpipeline(TFITpipeline.TFITpipeline):
       hdr = pyfits.getheader(resid2)
       chi2nu = hdr['chi2nu']
       print "Reduced chi2 = %.5f" % chi2nu 
+      maxcvratio = c.maxcvratio[c.objectid==objid][0]
+      print "Max. covariance ratio: %.3f" % maxcvratio
       os.chdir(os.path.join(self.loresdir, 'tphot'))
-      return mag, magerr
+      return mag, magerr, chi2nu, maxcvratio
+
+   def get_maxcvratio(self, obj_name):
+      if type(obj_name) == type(''):
+         objid = self.objectid[self.objnames==obj_name][0]
+      else:
+         objid = obj_name
+         obj_name = self.objnames[self.objectid==objid][0]
+      curdir = os.getcwd()
+      os.chdir(os.path.join(self.loresdir, 'tphot', obj_name))
+      c = sextractor(os.path.splitext(self.fitcat)[0] + '_%s.cat_best_mag' % obj_name)
+      os.chdir(curdir)
+      return c.maxcvratio[c.objectid==objid][0]
 
    def get_tphot_mag_all(self):
       mag = np.zeros(len(self.objnames))
