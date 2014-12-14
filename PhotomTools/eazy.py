@@ -29,7 +29,7 @@ def scinote2exp(scinote, nprec=3):
       return "%.2f \\times 10^{%d}" % (float(n[0]), int(n[1]))
 
 class EAZY(object):
-   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, paramfile='zphot.param'):
+   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, paramfile='zphot.param', with_specz=False):
       # catalog is the file containing all the fluxes; first column in catalog
       # is the object ID.
       with open(paramfile, 'rb') as f1:
@@ -39,7 +39,10 @@ class EAZY(object):
                catalog = l.split()[1]
       self.input_catalog = catalog
       self.c = sextractor(catalog)
-      assert len(self.c._d) % 2 == 1, "Number of columns doesn't seem right... missing some fluxes or flux errors?"
+      if with_specz:
+         assert len(self.c._d) % 2 == 0, "Number of columns doesn't seem right... missing some fluxes or flux errors?"
+      else:
+         assert len(self.c._d) % 2 == 1, "Number of columns doesn't seem right... missing some fluxes or flux errors?"
       self.nbands = (len(self.c._d) - 1) / 2
       self.objid = self.c._1
       # also assumes that the first line of catalog is the header line
@@ -107,8 +110,8 @@ class EAZY(object):
       return temp, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
 
 class PlotEAZY(EAZY):
-   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4]):
-      EAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile)
+   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4], with_specz=False):
+      EAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, with_specz=with_specz)
       self.lambda_max = 30000.  # default value for maximum lambda in plots
       self.lambda_min = 3000.
       self.flux_ujy_max = 1.0
@@ -158,11 +161,11 @@ class PlotEAZY(EAZY):
       ax.scatter(obs._1[detect==False], obs._3[detect==False],
                  marker=downarrow, edgecolor=ebar_kwargs['ecolor'],
                  s=(ebar_kwargs['ms']*2)**2, linewidths=1.2)
-      ax.set_ylim(ymin=ymin)
+      # ax.set_ylim(ymin=ymin)
       ylims = ax.get_ylim()
       mag_lo = pu.uJy2ABmag(ylims[0])
       mag_hi = pu.uJy2ABmag(ylims[1])
-      yticks_mag = np.arange(np.ceil(mag_lo), mag_hi, -1.0)
+      yticks_mag = np.arange(np.ceil(mag_lo), mag_hi-2.0, -1.0)
       yticks_flux = pu.ABmag2uJy(yticks_mag)
       ax.set_yticks(yticks_flux)
       ax.set_yticklabels(["%d" % int(x) for x in yticks_mag])
@@ -202,7 +205,8 @@ class PlotEAZY(EAZY):
       ax.set_xticks(lambda_ticks)
       ax.set_xticklabels(map(lambda x: "%.1f" % (x/1.e4), lambda_ticks))
       ax.set_xlabel(r"$\lambda$ [$\mu$m]")
-      ax.set_ylabel(r"$F_{\nu}$ [$\mu$Jy]")
+      if not len(ax.get_ylabel()):
+         ax.set_ylabel(r"$F_{\nu}$ [$\mu$Jy]")
       if mode == 'a':
          z_peak = self.z_a[self.id==objid][0]
       elif mode == '1':
@@ -227,6 +231,37 @@ class PlotEAZY(EAZY):
       plt.draw()
       plt.savefig("%s_SED_Pz.png" % str(objid))
 
+class PlotEAZY_wspecz(PlotEAZY):
+   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4]):
+      PlotEAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, 
+                        wavelim=wavelim, with_specz=True)
+   def plot_all(self, objid, z_spec, xmax=None, ax=None, savefig=True, textbox=True, plot_kwargs={'color':'black'}):
+      fig = plt.figure(figsize=(10,8))
+      ax1 = fig.add_subplot(111)
+      ax1.set_yscale('log')
+      ax1.set_xscale('log')
+      ax1 = self.plot_photom(objid, ax=ax1)
+      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode='1')
+      ax1.set_title('Object %s [z_spec = %.2f]' % (objid, z_spec))
+      if textbox:
+         mass, age, sfr, tau, ebmv = props
+         masstxt = scinote2exp('%e' % mass)
+         sedtext = "With IRAC:\n"
+         sedtext = sedtext + "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % masstxt
+         sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv
+         sedtext = sedtext + "$\mathrm{SFR} = %.2f/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
+         ssfr = sfr / mass * 1.e9  # in units of Gyr^-1
+         sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$\n" % (ssfr)
+         age = scinote2exp('%e' % age)
+         sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
+         sedtext = sedtext + "$\\tau = %.1f\ \mathrm{[Gyrs]}$" % tau
+         ax1.text(0.95, 0.05, sedtext, size='large', ha='right', va='bottom',
+                 transform=ax1.transAxes, multialignment='left',
+                 bbox=dict(boxstyle='round,pad=0.3',facecolor='LightPink'))
+      plt.draw()
+      if savefig:
+         plt.savefig("%s_SED_Pz.png" % str(objid))
+      return ax1
 
 def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, legend_loc=2, mode='a'):
    curdir = os.getcwd()
