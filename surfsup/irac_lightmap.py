@@ -4,6 +4,8 @@ import numpy as np
 import pyfits, pywcs
 import os
 import hconvolve 
+import pyfits
+from scipy.ndimage import filters
 
 def flatten_pixcoord(image):
    """
@@ -32,7 +34,7 @@ def transform_pixcoord(source, dest):
 
 def drizzle_mask(source, dest, output):
    """
-   ** The final task in making the light map. **
+   ** The final task in making the mask for a light map. **
    Given a source segmentation map, make a new mask on the same pixel grid as 
    the destination image. The source should be a mask image with value 1 for 
    the pixels to keep, and 0 for the pixels to be masked out.
@@ -88,3 +90,38 @@ def filter_segmap(segimage, id_keep, output, blur_kernel="", threshold=0.1):
       # mask = hconvolve.hconvolve(mask, )
    pyfits.append(output, data=seg_masked, header=pyfits.getheader(segimage))
    return mask
+
+def make_irac_lightmap(id_keep, hr_segmap, hr_mask, irac_psf, irac_drz, irac_output, blur_threshold=0.1, sigma=1.0):
+   """
+   Make an IRAC map for cluster members (or an arbitrary set of ID numbers).
+   id_keep: ID numbers in the high-res segmentation map to keep
+   hr_segmap: high-res segmentation map
+   hr_mask: high-res mask image (an intermediate product)
+   irac_psf: PSF in IRAC, used to blur the high-res mask image
+   irac_drz: IRAC science image, onto which we drizzle the high-res mask image
+   irac_output: file name of the output IRAC light map
+   blur_threshold: the threshold (between 0 and 1) in the step of blurring the 
+                   high-res mask image.
+   """
+   # First step, zero-out the non cluster members
+   mask = filter_segmap(hr_segmap, id_keep, hr_mask, blur_kernel=irac_psf, 
+                        threshold=blur_threshold)
+   # Now we have a mask image in high-res, drizzle the pixels onto the low-res
+   # pixel grid
+   if os.path.exists("irac_mask.fits"):
+      os.system('rm irac_mask.fits')
+   drizzle_mask(hr_mask, irac_drz, "irac_mask.fits")
+   irac_input = pyfits.getdata(irac_drz)
+   irac_mask = pyfits.getdata("irac_mask.fits")
+   irac_map = np.where(irac_mask>0, irac_input, 0.)
+   # Also smooth the output light map with a Gaussian kernel
+   if sigma > 0:
+      print "Smoothing the IRAC mask..."
+      irac_map = filters.gaussian_filter(irac_map, sigma)
+   irac_hdr = pyfits.getheader(irac_drz)
+   os.system('rm %s' % irac_output)
+   pyfits.append(irac_output, data=irac_map, header=irac_hdr)
+   print "Done."
+
+
+
