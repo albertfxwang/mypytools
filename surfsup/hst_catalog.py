@@ -218,7 +218,7 @@ class HSTcatalog(fitstable.Ftable):
       # write a region file (use circular regions; radius is in arcsec)
       f = open(filename, 'wb')
       col = getattr(self, column)
-      f.write('global color=%s\n' % color)
+      f.write('global color=%s width=2\n' % color)
       for i in range(len(col)):
          if col[i]:
             f.write('fk5; circle(%f, %f, %.2f") # text={%d}\n' % (self.alpha_j2000[i], self.delta_j2000[i], radius, self.number[i]))
