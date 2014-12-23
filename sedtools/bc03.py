@@ -73,7 +73,7 @@ def calc_Lyc(specfile, unit='Lsolar'):
    # Only integrates through wavelength < 912 A
    return np.log10(NLyc)
 
-def add_emission_line(spec, central_wave, flux, width=20., dw=1.0):
+def add_emission_line(spec, central_wave, flux, width=20., dw=1.0, return_ew=False, verbose=False):
    """
    Add a given emission line to a model spectrum, assuming Gaussian shape.
    spec is a pysynphot spectrum instance, with flux unit flam (erg/s/cm^2/A).
@@ -88,9 +88,16 @@ def add_emission_line(spec, central_wave, flux, width=20., dw=1.0):
    line[0] = 0.; line[-1] = 0.
    new_wave = np.union1d(spec.wave, wave)  # already sorted
    spr = spec.resample(new_wave)
+   continuum = (spr.sample(central_wave-100.) + spr.sample(central_wave+100.)) / 2.
+   EW = flux / continuum
+   if verbose:
+      print "Equiv. width at %.1f A is %.2f A." % (lam, EW)
    sp_line = S.ArraySpectrum(wave=wave, flux=line, fluxunits='flam')
    sp_new = spr + sp_line
-   return sp_new
+   if return_ew:
+      return EW
+   else:
+      return sp_new
 
 def calc_nebular_continuum(logNLyc):
    """
@@ -115,6 +122,75 @@ def calc_nebular_continuum(logNLyc):
                             fluxunits='flam')
    neb_cont = neb_HI + neb_HeI + neb_2q
    return neb_cont
+
+def calc_line_EW(specfile, line):
+   """
+   Calculate the equivalent width for a given line and a given galaxy template.
+   Assume the fluxes are in L_solar / A.
+   The supported lines so far are Halpha, Hbeta, OII, OIII, CII, CIII.
+   """
+   sp = S.FileSpectrum(specfile)
+   # sp = S.ArraySpectrum(sp.wave, sp.flux * (L_solar / area_10pc), 
+   #                      fluxunits='flam')
+   # sp0 = S.FileSpectrum(specfile) * (L_solar / area_10pc) 
+   # the reference for continuum
+   # First add hydrogen recombination lines
+   # Calculate LyC photon flux
+   N_Lyc = 10.**(calc_Lyc(specfile, unit='flam'))
+   # Now calculate the nebular emission component
+   # sp_neb = S.ArraySpectrum(sp.wave, flux=np.zeros(len(sp.wave)),
+   #                          fluxunits='flam')
+   Hbeta_flux = LyC_H[0][1] * N_Lyc / area_10pc
+   if line == 'Halpha':
+      lam = LyC_H[1][0]
+      flux = LyC_H[1][1] * N_Lyc / area_10pc
+   elif line == 'Hbeta':
+      lam = LyC_H[0][0]
+      flux = Hbeta_flux
+   elif line == 'OII':  # 3727A
+      lam = nebular_ratios['lambda'][6]
+      flux = Hbeta_flux * nebular_ratios['Z3'][6]
+   elif line == 'OIII':  # 4958.91A, 5007A
+      lam = nebular_ratios['lambda'][16:18]
+      flux = Hbeta_flux * np.array(nebular_ratios['Z3'][16:18])
+   elif line == 'CII':
+      lam = nebular_ratios['lambda'][4]
+      flux = Hbeta_flux * nebular_ratios['Z3'][4]
+   elif line == 'CIII':
+      lam = nebular_ratios['lambda'][2]
+      flux = Hbeta_flux * nebular_ratios['Z3'][2]
+   else:
+      raise NotImplementedError, "Line %s not supported yet." % line
+   if line == 'OIII':
+      # treat it differently because it's actually two lines
+      EW = add_emission_line(sp, lam[0], flux[0], width=5., dw=1.0, return_ew=True)
+      EW = EW + add_emission_line(sp, lam[1], flux[1], width=5., dw=1.0, return_ew=True)
+   else:
+      EW = add_emission_line(sp, lam, flux, width=5., dw=1.0, return_ew=True)
+   return EW
+
+def calc_nebular_EW_age(line, suffix='tau0.1'):
+   """
+   Calculate the equivalent width of a given line as a function of age for a 
+   given set of templates with the same tau (SFH).
+   """
+   specfiles = glob.glob('bc2003_lr_m42_chab_%s_age*.sed' % suffix)
+   specfiles_dust = glob.glob('bc2003_lr_m42_chab_%s_age*_dust*.sed' % suffix)
+   specfiles = list(set(specfiles) - set(specfiles_dust))
+   print "len(specfiles)", len(specfiles)
+   assert len(specfiles), "Galaxy templates with %s cannot be found." % suffix
+   ages = []
+   for i in range(len(specfiles)):
+      a = os.path.splitext(specfiles[i])[0].split('age')[-1]
+      ages += [float(a)]
+   index = np.argsort(ages)
+   ages = np.sort(ages)
+   EW = np.zeros(len(ages))
+   for i in range(len(ages)):
+      j = index[i]  # the index of the template with age=ages[i]
+      EW[i] = calc_line_EW(specfiles[j], line)
+   return ages, EW
+
 
 def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=1.0, metalKey='Z3', clobber=False, verbose=False, write_header=False, continuum=False, ebmv=0., extlaw='xgal'):
    """
