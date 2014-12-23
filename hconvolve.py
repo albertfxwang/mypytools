@@ -8,7 +8,12 @@ try:
    _pyfftw = 1
 except:
    _pyfftw = 0
-import anfft
+_anfft = 0
+try:
+   import anfft
+   _anfft = 1
+except:
+   pass
 import pyfits, glob, os
 from scipy import fftpack, signal
 import multiprocessing
@@ -112,8 +117,6 @@ def hconvolve(image, kernel, pad=True, threads=multiprocessing.cpu_count()):
             # c = c1 + (c2 + 1) / 2
             c = c1 + (c2 / 2)
       
-   # end of if pad
-
    # Does padding:
    # pad zeros on the END of image
    image_p = padzero2d_i(image, r, c)
@@ -129,12 +132,14 @@ def hconvolve(image, kernel, pad=True, threads=multiprocessing.cpu_count()):
          conved = pyfftw.interfaces.numpy_fft.irfftn(fftimage, threads=threads)[:r1,:c1].real
       else:
          conved = pyfftw.interfaces.numpy_fft.irfftn(fftimage, threads=threads).real
-   else:
+   elif _anfft:
       fftimage = anfft.rfftn(image_p) * anfft.rfftn(kernel_p)
       if pad:
          conved = anfft.irfftn(fftimage)[:r1,:c1].real
       else:
          conved = anfft.irfftn(fftimage).real
+   else:
+      conved = signal.convolve2d(image, kernel, mode='same')
 
    return conved
 
