@@ -7,17 +7,20 @@ import distributions
 Some simple statistical functions.
 """
 
-def consistent_sigma(val1, sig1, val2, sig2):
+def consistent_sigma(values, sigmas):
    """
    Given the values and erros for both values, test if they are 
    consistent within the errors. The quantities should be 
    val +/- sig.
    """
-   assert (sig1 > 0) & (sig2 > 0)
-   if val1 >= val2:
-      return (val2 + sig2) >= (val1 - sig1)
-   else:
-      return (val1 + sig1) >= (val2 - sig2)
+   assert np.min(sigmas) > 0
+   imin = np.argsort(values)[0]
+   minval = values[imin]
+   minsig = sigmas[imin]
+   imax = np.argsort(values)[-1]
+   maxval = values[imax]
+   maxsig = sigmas[imax]
+   return (minval+minsig >= maxval-maxsig)
       
 def MonteCarlo_dist(values, error):
    """
@@ -30,4 +33,3 @@ def MonteCarlo_dist(values, error):
       error = np.ones(len(values), 'float') * error
    newValues = np.random.normal(values, error)
    return newValues
-
