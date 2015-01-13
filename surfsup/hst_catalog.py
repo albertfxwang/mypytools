@@ -18,7 +18,7 @@ lephare_filters = ['f435w','f475w','f555w','f606w','f625w','f775w','f814w',\
 # For catalogs that include IRAC fluxes, manually edit the files to add IRAC
 # magnitudes/limits.
 clash_bands = ['f435w','f475w', 'f555w', 'f606w','f625w','f775w','f814w','f850lp','f098m','f105w','f110w','f125w','f140w','f160w']
-
+clash_eazy_hdr = "# id f_irac2 e_irac2 f_irac1 e_irac1 f_f160w e_f160w f_f140w e_f140w f_f125w e_f125w f_f110w e_f110w f_f105w e_f105w f_f098m e_f098m f_f850lp e_f850lp f_f814w e_f814w f_f775w e_f775w f_f625w e_f625w f_f606w e_f606w f_f555w e_f555w f_f475w e_f475w f_f435w e_f435w"
 
 class HSTcatalog(fitstable.Ftable):
    def __init__(self, filename):
@@ -155,18 +155,21 @@ class HSTcatalog(fitstable.Ftable):
          color, color_err = self.calc_color(objid, bands[i], bands[i+1])
          print "%s-%s = %.3f +/- %.3f" % (bands[i],bands[i+1],color,color_err)
 
-   def test_same_color(self, objid1, objid2, bands):
+   def test_same_color(self, objids, bands):
       """
-      Test if all the colors from objid1 and objid2 are consistent within 
+      Test if all the colors from objids are consistent within 
       errors.
       """
-      print "Comparing colors between %d and %d:" % (objid1, objid2)
+      print "Comparing colors among %s:" % str(objids)
       for i in range(len(bands) - 1):
          b1 = bands[i]
          b2 = bands[i+1]
-         color1, color_err1 = self.calc_color(objid1, b1, b2)
-         color2, color_err2 = self.calc_color(objid2, b1, b2)
-         same = ss.consistent_sigma(color1, color_err1, color2, color_err2)
+         colors = [self.calc_color(x, b1, b2)[0] for x in objids]
+         color_errs = [self.calc_color(x, b1, b2)[1] for x in objids]
+         # color1, color_err1 = self.calc_color(objid1, b1, b2)
+         # color2, color_err2 = self.calc_color(objid2, b1, b2)
+         # same = ss.consistent_sigma(color1, color_err1, color2, color_err2)
+         same = ss.consistent_sigma(colors, color_errs)
          print "%s-%s are consistent? %s." % (b1, b2, str(same))
 
  
@@ -232,7 +235,7 @@ class HSTcatalog(fitstable.Ftable):
          f.write('fk5; circle(%f, %f, %.2f") # text={%d}\n' % (ra, dec, radius, x))
       f.close()
  
-   def print_eazy_flux(self, header, objid, detect_band='f160w', SNLim=1.0):
+   def print_eazy_flux(self, objid, header=clash_eazy_hdr, detect_band='f160w', SNLim=1.0):
       # Provide a header line for the flux catalog to be fed into EAZY, print 
       # the fluxes and errors in uJy for the objects specified in objid
       # First, parse the header line; assume it starts with #
