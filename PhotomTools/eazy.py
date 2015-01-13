@@ -8,6 +8,7 @@ from scipy.integrate import cumtrapz
 from PhotomTools import photomUtils as pu
 import pysynphot as S
 import cosmoclass
+from stats import distributions
 
 eazy_path = '/Users/khuang/bin/eazy'
 # a symbol for magnitude upper limits
@@ -16,6 +17,7 @@ pc_cm = 3.0857e18   # parsec in cm
 area_10pc = 4 * np.pi * (10*pc_cm)**2  # in cm^2
 L_solar = 3.826e33  # in erg/s
 bc03_phys = '/Users/khuang/eazy-1.00/templates/BC03/bc03_m42_tau.phys'
+bc03_phys_dustfree = '/Users/khuang/eazy-1.00/templates/BC03/bc03_m42_tau_dustfree.phys'
 cosmo = cosmoclass.cosmoclass(70., 0.3, 0.7)  # default cosmology parameters
 
 def scinote2exp(scinote, nprec=3):
@@ -40,9 +42,9 @@ class EAZY(object):
       self.input_catalog = catalog
       self.c = sextractor(catalog)
       if with_specz:
-         assert len(self.c._d) % 2 == 0, "Number of columns doesn't seem right... missing some fluxes or flux errors?"
+         assert len(self.c._d) % 2 == 0, "Number of columns doesn't seem right... missing some fluxes or flux errors?\n(or do you mean with_specz=True?)"
       else:
-         assert len(self.c._d) % 2 == 1, "Number of columns doesn't seem right... missing some fluxes or flux errors?"
+         assert len(self.c._d) % 2 == 1, "Number of columns doesn't seem right... missing some fluxes or flux errors?\n(or do you mean with_specz=True?)"
       self.nbands = (len(self.c._d) - 1) / 2
       self.objid = self.c._1
       # also assumes that the first line of catalog is the header line
@@ -73,7 +75,7 @@ class EAZY(object):
       for i in range(1, len(hdr_list)+1):
          setattr(self, hdr_list[i-1].lower(), getattr(out, "_%d" % i))
 
-   def read_SED(self, objid):
+   def read_SED(self, objid, mode='1'):
       """
       Read the best-fit SED and determine the best-fit physical properties.
       """
@@ -83,7 +85,7 @@ class EAZY(object):
       header = temp._header.split('\n')
       h2 = header[1].split('templ:norm')[-1].split(':')
       MOD_BEST = int(h2[0])
-      # print "MOD_BEST: ", (MOD_BEST)
+      print "MOD_BEST: ", (MOD_BEST)
       ## MOD_BEST is the model number in TEMPLATES_FILE; the file order has
       ## to match between TEMPLATES_FILE and physfile for the best-fit physical
       ## Calculate the normalization factor, from template to observed flux
@@ -92,7 +94,12 @@ class EAZY(object):
       sp_obs = sp_obs * 1.e-29  # convert from uJy to erg/s/cm^2/Hz
       sp_mod = S.FileSpectrum(os.path.split(self.physfile)[0] + '/' + self.phys.filename[MOD_BEST-1])  # in flam
       sp_mod.convert('fnu')  # convert flux unit to fnu
-      zpeak = self.z_1[self.id==objid][0]
+      if mode == '1':
+         zpeak = self.z_1[self.id==objid][0]
+      elif mode == 'a':
+         zpeak = self.z_a[self.id==objid][0]
+      else:
+         zpeak = self.z_2[self.id==objid][0]
       LUMDIST = cosmo.lumdist(zpeak, unit='Mpc') * 1e6  # in parsec
       FACTOR = (1./(1.+zpeak)) * (LUMDIST / 10.)**2  
       # a factor in front of template flux ratios
@@ -107,7 +114,7 @@ class EAZY(object):
       sfr_best = self.phys.sfr[MOD_BEST-1] * NORM
       tau = self.phys.tau[MOD_BEST-1]
       ebmv = self.phys.ebmv[MOD_BEST-1]
-      return temp, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
+      return temp, zpeak, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
 
 class PlotEAZY(EAZY):
    def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4], with_specz=False):
@@ -135,10 +142,25 @@ class PlotEAZY(EAZY):
          z_peak = self.z_a[self.id==objid][0]
       elif mode=='1':
          z_peak = self.z_1[self.id==objid][0]
+      else:
+         z_peak = self.z_2[self.id==objid][0]
       ax.set_title('Object %s [z_peak = %.3f]' % (str(objid), z_peak))
       if savefig:
          fig.savefig("OUTPUT/%s_Pz.png" % str(objid))
       return ax, z_peak
+
+   def plot_multiple_Pz(self, objids, ax=None, mode='a', **plot_kwargs):
+      """
+      Show the P(z) for multiple objects in the same plot.
+      """
+      fig = plt.figure()
+      ax = fig.add_subplot(111)
+      for x in objids:
+         ax, z_peak = self.plot_Pz(x, ax=ax, savefig=False, mode=mode, **plot_kwargs)
+         ax.lines[-1].set_label('%s [z_peak = %.2f]' % (x, z_peak))
+      ax.set_title("")
+      ax.legend()
+      return ax
 
    def plot_photom(self, objid, ax=None, savefig=False, ebar_kwargs={'ms':10, 'mec':'black', 'mfc':'none', 'ecolor':'black', 'mew':1.5, 'capsize':8, 'capthick':1.5}):
       # Plot the observed fluxes and the best-fit SED
@@ -184,7 +206,7 @@ class PlotEAZY(EAZY):
          ax = fig.add_subplot(111)
          ax.set_yscale('log')
          ax.set_xscale('log')
-      (temp,mass_best,log_age_best,sfr_best,tau,ebmv,mod_best) = self.read_SED(objid)
+      (temp,z_best,mass_best,log_age_best,sfr_best,tau,ebmv,mod_best) = self.read_SED(objid, mode=mode)
       print "Best-fit parameters:"
       print "Stellar mass = %.2e [M_solar]" % mass_best
       print "Age = %.2e [yrs]" % 10.**log_age_best
@@ -201,7 +223,8 @@ class PlotEAZY(EAZY):
       ax.plot(temp._1, temp._2, **plot_kwargs)
       # ax.set_xlim(self.lambda_min, self.lambda_max)
       ax.set_xlim(*self.wavelim)
-      lambda_ticks = [5000.,10000.,20000.,30000.,40000.,50000.]
+      # lambda_ticks = [5000.,10000.,20000.,30000.,40000.,50000.]
+      lambda_ticks = [5.e3, 1.e4, 2.e4, 5.e4]
       ax.set_xticks(lambda_ticks)
       ax.set_xticklabels(map(lambda x: "%.1f" % (x/1.e4), lambda_ticks))
       ax.set_xlabel(r"$\lambda$ [$\mu$m]")
@@ -211,38 +234,51 @@ class PlotEAZY(EAZY):
          z_peak = self.z_a[self.id==objid][0]
       elif mode == '1':
          z_peak = self.z_1[self.id==objid][0]
+      else:
+         z_peak = self.z_2[self.id==objid][0]
       ax.set_title('Object %s [z_peak = %.3f]' % (str(objid), z_peak), weight='bold')
       if savefig:
          plt.savefig('OUTPUT/%s_SED.png' % str(objid))
       return ax, z_peak, [mass_best, 10.**log_age_best, sfr_best, tau, ebmv]
 
-   def plot_all(self, objid, objname="", savefig=True, legend_loc=1, mode='a'):
+   def plot_all(self, objid, objname="", savefig=True, legend_loc=1, mode='1'):
       fig = plt.figure(figsize=(10,12))
       ax1 = fig.add_subplot(211)
       ax1.set_yscale('log')
       ax1.set_xscale('log')
       ax1 = self.plot_photom(objid, ax=ax1)
-      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode)
+      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode,
+                                     plot_kwargs=dict(color='blue',lw=2))
       ax2 = fig.add_subplot(212)
-      ax2, zp = self.plot_Pz(objid, ax=ax2, savefig=False, mode=mode)
+      ax2, zp = self.plot_Pz(objid, ax=ax2, savefig=False, mode=mode, lw=2)
+      ax2.set_title("")
       if len(objname):
          ax1.set_title('Object %s [z_peak = %.3f]' % (objname, zp))
          ax2.set_title('Object %s [z_peak = %.3f]' % (objname, zp))
       plt.draw()
-      plt.savefig("%s_SED_Pz.png" % str(objid))
+      if savefig:
+         plt.savefig("%s_SED_Pz.png" % str(objid))
+      return fig
+
 
 class PlotEAZY_wspecz(PlotEAZY):
    def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4]):
       PlotEAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, 
                         wavelim=wavelim, with_specz=True)
-   def plot_all(self, objid, z_spec, xmax=None, ax=None, savefig=True, textbox=True, plot_kwargs={'color':'black'}):
+   def plot_all(self, objid, xmax=None, ax=None, savefig=False, textbox=True, plot_kwargs={'color':'black'}, mode='1'):
       fig = plt.figure(figsize=(10,8))
       ax1 = fig.add_subplot(111)
       ax1.set_yscale('log')
       ax1.set_xscale('log')
       ax1 = self.plot_photom(objid, ax=ax1)
-      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode='1')
-      ax1.set_title('Object %s [z_spec = %.2f]' % (objid, z_spec))
+      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode, plot_kwargs=plot_kwargs)
+      if mode == '1':
+         chi2 = self.chi_1
+      elif mode == 'a':
+         chi2 = self.chi_a
+      else:
+         chi2 = self.chi_2
+      ax1.set_title('Object %s [z_spec = %.2f]' % (objid, zp))
       if textbox:
          mass, age, sfr, tau, ebmv = props
          masstxt = scinote2exp('%e' % mass)
@@ -255,6 +291,8 @@ class PlotEAZY_wspecz(PlotEAZY):
          age = scinote2exp('%e' % age)
          sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
          sedtext = sedtext + "$\\tau = %.1f\ \mathrm{[Gyrs]}$" % tau
+         chi2_nu = chi2[self.id==objid][0] / self.nfilt[self.id==objid][0]
+         sedtext = sedtext + "\n$\chi^2 = %.2f$" % (chi2_nu)
          ax1.text(0.95, 0.05, sedtext, size='large', ha='right', va='bottom',
                  transform=ax1.transAxes, multialignment='left',
                  bbox=dict(boxstyle='round,pad=0.3',facecolor='LightPink'))
@@ -262,6 +300,39 @@ class PlotEAZY_wspecz(PlotEAZY):
       if savefig:
          plt.savefig("%s_SED_Pz.png" % str(objid))
       return ax1
+
+   def plot_all_multifits(self, objids, objname="", savefig=False, plot_kwargs={'lw':2}, mode='1'):
+      """
+      Plot multiple fits of the same object. Each fit is represented by a 
+      different objid in the EAZY catalog, but they have the same photometry.
+      This method doesn't check if the photometry is the same---it just uses
+      the photometry from the first objid. The user should make sure that
+      all objids are from the same photometry.
+      """
+      fig = plt.figure(figsize=(10,8))
+      ax = fig.add_subplot(111)
+      ax.set_yscale('log')
+      ax.set_xscale('log')
+      if mode == '1':
+         chi2 = self.chi_1
+      elif mode == 'a':
+         chi2 = self.chi_a
+      else:
+         chi2 = self.chi_2
+      ax = self.plot_photom(objids[0], ax=ax)
+      for x in objids:
+         ax, zp, props = self.plot_SED(x, ax=ax, mode=mode,
+                                       plot_kwargs=plot_kwargs)
+         chi2_nu = chi2[self.id==x][0] / self.nfilt[self.id==x][0]
+         ax.lines[-1].set_label(r"$z=%.2f$; $\chi^2_{\nu}=%.2f$" % (zp, chi2_nu))
+         print ax.lines[-1].get_label()
+         ax.set_title("")
+      ax.legend(loc=2, fontsize='x-large')
+      if objname:
+         ax.set_title(objname, size='xx-large')
+      plt.draw()
+      return ax
+
 
 def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, legend_loc=2, mode='a'):
    curdir = os.getcwd()
@@ -278,6 +349,8 @@ def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, lege
       zp_1 = p1.z_a[p1.id==objid][0]
    elif mode == '1':
       zp_1 = p1.z_1[p1.id==objid][0]
+   else:
+      zp_1 = p1.z_2[p1.id==objid][0]
    os.chdir(curdir+'/with_irac')
    with open('zphot.param', 'rb') as f2:
       lines = f2.readlines()
@@ -289,6 +362,8 @@ def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, lege
       zp_2 = p2.z_a[p2.id==objid][0]
    elif mode == '1':
       zp_2 = p2.z_1[p2.id==objid][0]
+   else:
+      zp_2 = p2.z_2[p2.id==objid][0]
    if ax == None:
       fig = plt.figure()
       ax = fig.add_axes([0.12,0.12,0.78,0.78])
@@ -353,7 +428,7 @@ def plot_HST_IRAC_Pz(objid, ax=None, colors=['blue', 'maroon'], savefig=True, le
       plt.savefig('%s_Pz.png' % str(objid))
    return ax, z_peak
 
-def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc=2, SEDtype='default', mode='1', textbox=True):
+def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc=2, mode='1', textbox=True):
    # Plot both P(z) and SED for the object with ID objid
    fig = plt.figure(figsize=(10,12))
    ax1 = fig.add_subplot(2, 1, 1)
@@ -361,8 +436,6 @@ def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc
          colors=colors, savefig=False, legend_loc=legend_loc, mode=mode)
    title = 'Object %s [z_peak = %.3f]' % (str(objid), z_peak)
    ax1.set_title(title)
-   # if objname:
-   #    ax1.set_title(title + '\n(%s SED)' % SEDtype)
    ax2 = fig.add_subplot(2, 1, 2)
    ax2, z_peak = plot_HST_IRAC_Pz(objid, ax=ax2, colors=colors, savefig=False,
                                  legend_loc=legend_loc, mode=mode)
@@ -389,6 +462,148 @@ def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc
    plt.show()
    return [ax1, ax2]
 
+def plot_dustfree(objid, outputfile="", mode="1", textbox=True):
+   """
+   Plot EAZY fitting results for dust-free templates only. Only consider the 
+   WITH_IRAC case.
+   Should be called inside the dust-free EAZY directory so that the OUTPUT 
+   directory exists.
+   """
+   P = PlotEAZY(physfile=bc03_phys_dustfree)
+   fig = P.plot_all(objid, objname=objid, savefig=False, mode=mode)
+   # Now add text box showing the best-fit properties
+   ax1, ax2 = fig.axes
+   props_df = P.read_SED(objid)
+   if textbox:
+      mass = props_df[2]
+      age = 10.**props_df[3]
+      sfr = props_df[4]
+      tau = props_df[5]
+      ebmv = props_df[6]
+      masstxt = scinote2exp('%e' % mass)
+      sedtext = "With IRAC:\n"
+      sedtext = sedtext + "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % masstxt
+      sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv
+      sedtext = sedtext + "$\mathrm{SFR} = %.2f/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
+      ssfr = sfr / mass * 1.e9  # in units of Gyr^-1
+      sedtext = sedtext + "$\mathrm{sSFR} = %.2f\ [\mathrm{Gyr}^{-1}]$\n" % (ssfr)
+      age = scinote2exp('%e' % age)
+      sedtext = sedtext + "$\mathrm{Age} = %s\ \mathrm{[yrs]}$\n" % age
+      sedtext = sedtext + "$\\tau = %.1f\ \mathrm{[Gyrs]}$" % tau
+      ax1.text(0.95, 0.05, sedtext, size='large', ha='right', va='bottom',
+              transform=ax1.transAxes, multialignment='left',
+              bbox=dict(boxstyle='round,pad=0.3',facecolor='LightPink'))
+   ax2.set_title("")
+   plt.draw()
+   if len(outputfile):
+      fig.savefig(outputfile)
+   return fig
+
+def plot_HST_IRAC_all_1panel(objid, ax=None, colors=['blue','maroon'], outputfile="", legend_loc=2, SEDtype='default', mode='1', textbox=True, title=False, xlow2=0.65, xsize2=0.3, ylow2=0.12, ysize2=0.3, magmin=30, magmax=23, legendfontsize='x-large', pztickfontsize='large', pztextfontsize='large',qsodir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/QSO',stardir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/STAR'):
+   curdir = os.getcwd()
+   # Plot both P(z) and SED for the object with ID objid
+   if ax == None:
+      fig = plt.figure(figsize=(8,6))
+      ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+   else:
+      fig = ax.get_figure()
+   # First plot the best-fit SED as usual
+   print "\nPlotting %s..." % objid
+   ax1 = ax
+   axes = []
+   ax1, z_peak, props_hst, props_irac = plot_HST_IRAC_SED(objid, ax=ax1, 
+         colors=colors, savefig=False, legend_loc=legend_loc, mode=mode)
+   print "z_peak = %.2f" % z_peak
+   # Plot best-fit QSO spectrum
+   print "\nPlotting QSO spectrum...\n"
+   os.chdir(qsodir)
+   plt_qso = PlotEAZY()
+   out_qso = plt_qso.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1, 
+      plot_kwargs=dict(color='SeaGreen', ls='--', lw=1, label='QSO'))
+   # Plot best-fit STAR spectrum
+   print "\nPlotting STAR spectrum...\n"
+   os.chdir(stardir)
+   plt_star = PlotEAZY(with_specz=True)
+   out_star = plt_star.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1,
+      plot_kwargs=dict(color='0.1', ls=':', lw=1, label='STAR'))
+   # re-set HST only line width
+   for j in range(len(ax1.lines)):
+      if ax1.lines[j].get_label() == 'HST only':
+         # set line width for HST_only to 2
+         ax1.lines[j].set_linewidth(2)  
+         print "Line label: %s" % ax1.lines[j].get_label()
+         break
+   os.chdir(curdir)
+   if title:
+      title = 'Object %s [z_peak = %.3f]' % (str(objid), z_peak)
+      ax1.set_title(title)
+   else:
+      ax1.set_title("")
+   ax1.set_xlim(3000, 8.e4)
+   ymin = pu.ABmag2uJy(magmin)
+   ymax = pu.ABmag2uJy(magmax)
+   ax1.set_ylim(ymin, ymax)
+   # Set the y-axis tick labels
+   mag_array = np.arange(magmin-1, magmax, -1)
+   yticks = [pu.ABmag2uJy(x) for x in mag_array]
+   ax1.set_yticks(yticks)
+   ax1.set_yticklabels(['%d'%y for y in mag_array])
+   ax1.set_xlabel('Observed $\lambda$ [$\mu\mathrm{m}$]')
+   legend = ax1.legend(title=objid, loc=2, fontsize=legendfontsize)
+   plt.setp(legend.get_title(), fontsize=legendfontsize)
+   axes.append(ax1)
+   plt.draw()  ## Important for setting the right axes boundaries for ax1!!
+   print "Plotted SED."
+   # Now plot P(z)
+   # Read bbox properties AFTER plotting SEDs, because if ax is one of the 
+   # AxesGrid axes, its boundaries won't be set properly before plotting the 
+   # SED!
+   bbox1 = ax1.get_position()
+   xlow2, ylow2 = bbox1.p0 + bbox1.size * np.array([xlow2, ylow2])
+   xsize2, ysize2 = bbox1.size * np.array([xsize2, ysize2])
+   # print "Boundaries for ax1:"
+   # print np.concatenate([bbox1.p0, bbox1.size])
+   # print "New values for the boundaries of ax2:"
+   print xlow2, ylow2, xsize2, ysize2
+   ax2 = fig.add_axes([xlow2, ylow2, xsize2, ysize2])
+   ax2, z_peak = plot_HST_IRAC_Pz(objid, ax=ax2, colors=colors, savefig=False,
+                                 legend_loc=legend_loc, mode=mode)
+   ## Plot P(z) for QSO templates as well...
+   # os.chdir(qsodir)
+   # ax2, z_peak_qso = plt_qso.plot_Pz(objid, ax=ax2, savefig=False, 
+   #                   mode=mode, ls='--', lw=1, color='SeaGreen')
+   # print "\nz_peak = %.3f (%.3f) for QSO (galaxy) templates.\n" % (z_peak_qso,z_peak)
+   # os.chdir(curdir)
+   ax2.legend().set_visible(False)  # turn off P(z) legend
+   ax2.set_yticklabels([])
+   ax2.set_ylabel(ax2.get_ylabel(), size=pztickfontsize)
+   xlims2 = ax2.get_xlim()
+   if z_peak < 9:
+      xlims2 = (xlims2[0], 10.)
+      xticks2 = [0, 2, 4, 6, 8, 10]
+   else:
+      xticks2 = [0, 3, 6, 9, 12]
+   ax2.set_xlim(xlims2)
+   # xticks2 = np.linspace(*ax2.get_xlim(), num=5)
+   ax2.set_xticks(xticks2)
+   ax2.set_xticklabels(['%d'%x for x in xticks2], size=pztickfontsize)
+   ax2.set_xlabel('z', labelpad=0.01, size=pztickfontsize)
+   ax2.set_title('')
+   xtext = 0.1
+   ytext = 0.9
+   ha = 'left'
+   if z_peak < 5:
+      xtext = 0.9
+      ha = 'right'
+   ax2.text(xtext, ytext, '$z=%.1f$'% z_peak, size=pztextfontsize, ha=ha, 
+            va='top', transform=ax2.transAxes)
+   # NO best-fit SED texts
+   if len(outputfile):
+      plt.savefig(outputfile)
+   axes.append(ax2)
+   plt.draw()
+   return axes
+
 class MCEAZY(EAZY):
    def __init__(self, tempfluxunit='fnu', physfile=bc03_phys):
       EAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, 
@@ -407,12 +622,20 @@ class MCEAZY(EAZY):
    def perturb_flux(self, niter):
       """
       Perturb the fluxes with errors and write a new catalog.
+      niter: number of the desired iterations; because EAZY is too slow
+             interpolating templates each time it runs, I'll just create a 
+             giant catalog that has niter * nobj entries in it and fit just 
+             once.
       """
       root = os.path.splitext(self.input_catalog)[0]
-      new_catalog = root + "_iter%d.cat" % niter
-      # new_flux = np.zeros((len(self.c), self.nbands))
-      # new_fluxerr = np.zeros((len(self.c), self.nbands))
-      grand_output = [self.c._1]  # the ID column
+      new_catalog = root + "_%diters.cat" % niter
+      # new_catalog = root + "_iter%d.cat" % niter
+      # Now process the IDs to make them unique
+      objids = []
+      for i in range(niter):
+         objids += [x + '-%d' % i for x in self.c._1]
+      grand_output = [objids]
+      # grand_output = [self.c._1]  # the ID column
       # new_fluxerr = np.zeros((len(self.c), self.nbands))
       for i in range(self.nbands):
          flux_col = i * 2 + 2
@@ -420,9 +643,13 @@ class MCEAZY(EAZY):
          old_flux = getattr(self.c, "_%d" % flux_col)
          old_fluxerr = getattr(self.c, "_%d" % fluxerr_col)
          old_fluxerr_floor = np.maximum(1.e-6, old_fluxerr)
+         # Now duplicate the arrays niter times
+         old_flux = np.tile(old_flux, niter)
+         old_fluxerr = np.tile(old_fluxerr, niter)
+         old_fluxerr_floor = np.tile(old_fluxerr_floor, niter)
          # this is to make np.random.normal work; objects who get this fluxerr
-         # floor will not have their perturb flux propogated to output
-         perturb = (old_flux > 0)
+         # floor will not have their perturbed flux propogated to output
+         perturb = (np.array(old_flux > 0))
          new_flux = np.where(perturb, 
                              np.random.normal(old_flux, old_fluxerr_floor), 
                              old_flux)
@@ -449,12 +676,15 @@ class MCEAZY(EAZY):
             if k == 'CATALOG_FILE':
                value = self.param_lines[k]
                value[0] = new_catalog
+            elif k in ["OBS_SED_FILE","POFZ_FILE"]:
+               value = self.param_lines[k]
+               value[0] = "n"
             else:
                value = self.param_lines[k]
             f.write(k + '  ' + ' '.join(value) + '\n')
       print "Done."
 
-   def MCSampling(self, nstart=1, nfinish=5):
+   def MCSampling(self, niter):
       """
       Runs Monte Carlo sampling of the input photometry catalog, runs EAZY
       for each realization, and collect the set of values for stellar
@@ -462,35 +692,56 @@ class MCEAZY(EAZY):
       We don't need to read the best-fit parameters for the input photometry.
       At the end of each iteration, read the best-fit parameters.
       """
-      for i in range(nstart, nfinish+1):
-         print "Start iteration %d..." % i
-         new_catalog = self.perturb_flux(i)
-         self.rewrite_param(new_catalog)
-         # Run EAZY
-         subprocess.call(["eazy"])
-         # Now read output
-         self.read_output()
-         for objid in self.id:
-            output_file = objid + ".mc"
+      new_catalog = self.perturb_flux(niter)
+      self.rewrite_param(new_catalog)
+      # Run EAZY
+      subprocess.call(["eazy"])
+      # Now read output
+      self.read_output()
+      # for objid in self.id:
+      print "Reading EAZY output..."
+      output = {}
+      for objid in self.c._1:
+         print "Reading output for %s..." % objid
+         if objid not in output.keys():
+            output[objid] = dict(mass=[], log_age=[], sfr=[], tau=[], ebmv=[],
+                                 mod_best=[], zbest=[])
+         for i in range(niter):
             try:
-               (temp,mass,log_age,sfr,tau,ebmv,mod_best) = self.read_SED(objid)
-               zbest = self.z_1[self.id==objid][0]
+               newid = objid + "-%d" % i
+               (temp,zbest,mass,log_age,sfr,tau,ebmv,mod_best) = self.read_SED(newid)
+               zbest = self.z_1[self.id==newid][0]
+               output[objid]['mass'].append(mass)
+               output[objid]['log_age'].append(log_age)
+               output[objid]['sfr'].append(sfr)
+               output[objid]['tau'].append(tau)
+               output[objid]['ebmv'].append(ebmv)
+               output[objid]['mod_best'].append(mod_best)
+               output[objid]['zbest'].append(zbest)
             except:
-               print "Could not read output for object %s!!" % objid
+               print "Could not read output for object %s!!" % newid
                continue
-            if not os.path.exists(output_file):
-               with open(output_file, 'wb') as f:
-                  f.write("# 1 NITER\n")
-                  f.write('# 2 ZBEST\n')
-                  f.write('# 3 SMASS\n')
-                  f.write('# 4 LOG_AGE\n')
-                  f.write('# 5 SFR\n')
-                  f.write('# 6 TAU\n')
-                  f.write('# 7 EBMV\n')
-                  f.write('# 8 MOD_BEST\n')
+         print "Writing output for %s..." % objid
+         output_file = objid + ".mc"
+         if not os.path.exists(output_file):
+            with open(output_file, 'wb') as f:
+               f.write("# 1 NITER\n")
+               f.write('# 2 ZBEST\n')
+               f.write('# 3 SMASS\n')
+               f.write('# 4 LOG_AGE\n')
+               f.write('# 5 SFR\n')
+               f.write('# 6 TAU\n')
+               f.write('# 7 EBMV\n')
+               f.write('# 8 MOD_BEST\n')
+         if len(output[objid]['mass']):
+            x = output[objid]
             with open(output_file, 'ab') as f:
-               f.write('%s  %f  %e  %e  %f  %f  %f  %d\n' % (i, zbest, mass, log_age, sfr, tau, ebmv, mod_best)) 
-         print "Finish iteration %d." % i
+               for j in range(len(output[objid]['mass'])):
+                  line = '%d %f %e ' % (niter, x['zbest'][j], x['mass'][j])
+                  line += '%e %f %f ' % (x['log_age'][j], x['sfr'][j], x['tau'][j])
+                  line += '%f %d ' % (x['ebmv'][j], x['mod_best'][j])
+                  f.write(line + '\n')
+      # print "Finish iteration %d." % i
 
 def fix_header(fname):
    """
@@ -508,6 +759,65 @@ def fix_header(fname):
             f2.write(lines[j])
    print "Done."
 
+def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200):
+   """
+   Read the Monte Carlo simulation results and calculate confidence intervals.
+   """
+   mc = sextractor('MonteCarlo/' + objname + '.mc')
+   bf = EAZY()
+   bf.read_output()
+   R = bf.read_SED(objname)
+   #bestprops = temp, z_best, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
+   bestprops = dict(zbest=R[1], smass=R[2], log_age=R[3], sfr=R[4])
+   confint = {}
+   # Also filter by E(B-V) if desired
+   if ebmv == 'best':
+      ebmv = R[6]
+   if ebmv < 0:  # all E(B-V) values
+      filt = np.ones(len(mc), 'bool')
+   elif ebmv < 0.05:  # E(B-V) = 0
+      filt = (mc.ebmv < 0.05)
+   elif ebmv < 0.15:  # E(B-V) = 0.1
+      filt = ((mc.ebmv > 0.05) & (mc.ebmv < 0.15))
+   elif ebmv < 0.25:  # E(B-V) = 0.2
+      filt = ((mc.ebmv > 0.15) & (mc.ebmv < 0.25))
+   else:  # E(B-V) = 0.3
+      filt = (mc.ebmv > 0.25)
+   print "======================================="
+   print "%d out of %d simulated points are used." % (np.sum(filt), len(filt))
+   print "======================================="
+   print "Best-fit E(B-V) = %.2f" % R[6]
+   print ""
+   for x in ['zbest','smass','log_age','sfr']:      
+      if x == 'smass':
+         d = distributions.Distribution1D(mc.smass[filt])
+         print "%s: %f * 10^9 M_solar" % (x, bestprops[x] * 1.e-9)
+         scale = 1.e-9
+         x0 = bestprops[x]
+      elif x == 'log_age':
+         d = distributions.Distribution1D(10.**(mc.log_age[filt]))
+         print "%s: %f Myr" % (x, 10.**bestprops[x] / 1.e6)
+         scale = 1.e-6
+         x0 = (10.**bestprops[x])
+      else:
+         d = distributions.Distribution1D(getattr(mc, x)[filt])
+         print "%s: %f" % (x, bestprops[x])
+         scale = 1.0
+         x0 = bestprops[x]
+      limits = d.conf_interval(xgrid=100, p=p, x0=x0, print_it=True,
+                               scale=scale)
+      confint[x] = limits
+      print ""
+   # Also print specific SFR
+   d = distributions.Distribution1D((mc.sfr / mc.smass * 1.e9)[filt])
+   x0 = bestprops['sfr']/bestprops['smass']*1.e9
+   print "sSFR: %f M_solar/Gyr" % (x0)
+   scale = 1.0
+   limits = d.conf_interval(xgrid=xgrid, p=p, x0=x0, print_it=True,
+                            scale=scale)
+   print ""
+   return confint
+
 class Plot_MCEAZY(object):
    def __init__(self, objname):
       assert os.path.exists('hst_only')
@@ -516,7 +826,7 @@ class Plot_MCEAZY(object):
       self.c2 = sextractor('with_irac/MonteCarlo/%s.mc' % objname)
       self.objname = objname
 
-   def hist_MCEAZY(self, prop, bins, ax=None, logprop=False, xlabel="", **hist_kwargs):
+   def hist_MCEAZY(self, prop, bins1, bins2, ax=None, logprop=False, xlabel="", **hist_kwargs):
       """
       Plots the histograms of MC sampling results. Should be called in the 
       directory above both hst_only and with_irac.
@@ -530,9 +840,9 @@ class Plot_MCEAZY(object):
       if logprop:
          x1 = np.log10(np.maximum(x1, 1e-3))
          x2 = np.log10(np.maximum(x2, 1e-3))
-      h1 = ax.hist(x1, bins, lw=2, color='blue', label='hst_only',
-                   histtype='step', normed=True, **hist_kwargs)
-      h2 = ax.hist(x2, bins, lw=2, color='red', label='with_irac',
+      h1 = ax.hist(x1, bins1, lw=2, color='0.7', label='hst_only',
+                   histtype='stepfilled', normed=True, **hist_kwargs)
+      h2 = ax.hist(x2, bins2, lw=2, color='red', label='with_irac',
                    histtype='step', normed=True, **hist_kwargs)
       ax.set_xlabel(xlabel)
       ax.set_title(self.objname)
