@@ -2,7 +2,7 @@ cluster_name: "Abell2744"
 image_dir: "/Users/khuang/Frontier_fields/A2744/hst"
 homedir: "/Users/khuang/Dropbox/Research/frontier_fields/A2744/hst"
 merged_table: "hst_a2744_60mas_merged.fits"
-sexfile: "f160w_a2744_60mas.sex"
+sexfile: "f160w_a2744_cold_60mas.sex"
 filters: ['f435w', 'f606w', 'f814w', 'f105w', 'f125w', 'f140w', 'f160w']
 # filters: ['f160w']
 detectband: 'f160w'
@@ -72,12 +72,12 @@ detect_minarea: [8.0, 10.0]
 detect_thresh:  [1.5, 6.0]
 clean_param:    [1.0, 0.5]
 skyrms_factor:  # scaling factor for flux error within 0.4 arcsec aperture
-   f435w: 1.445
-   f606w: 1.455
-   f814w: 1.371
-   f105w: 1.834
-   f125w: 1.504
-   f140w: 1.482
-   f160w: 2.271
+   f435w: 1.533
+   f606w: 1.580
+   f814w: 1.595
+   f105w: 2.369
+   f125w: 2.211
+   f140w: 2.289
+   f160w: 2.653
 # apercol: 'APER_1'  
 # the aperture suffix that has the right aperture size for flux errors

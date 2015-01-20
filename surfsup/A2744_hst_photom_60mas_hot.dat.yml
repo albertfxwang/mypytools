@@ -4,8 +4,9 @@ homedir: "/Users/khuang/Dropbox/Research/frontier_fields/A2744/hst"
 merged_table: "hst_a2744_60mas_hot_merged.fits"
 sexfile: "f160w_a2744_hot_60mas.sex"
 filters: ['f435w', 'f606w', 'f814w', 'f105w', 'f125w', 'f140w', 'f160w']
-# filters: ['f160w']
+# filters: ['f160w']   # for tests, use one filter only
 detectband: 'f160w'
+# detectband: 'f814w'
 scale: 0.06   # pixel scale in arcsec
 drz_images:  # use PSF-matched images (to F160W) for bands bluer than F160W
    f435w: 'F435W_a2744_60mas_v1.0_cut_drz.fits'
@@ -68,16 +69,16 @@ effgain:  # effective gain; = ccdgain * exptime
    f140w: 70350.53
    f160w: 170505.96
 # below are SExtractor parameters for the HOT/COLD modes
-detect_minarea: [8.0, 10.0]
-detect_thresh:  [1.5, 6.0]
-clean_param:    [1.0, 0.5]
-skyrms_factor:  # scaling factor for flux error within 0.4 arcsec aperture
-   f435w: 1.445
-   f606w: 1.455
-   f814w: 1.371
-   f105w: 1.834
-   f125w: 1.504
-   f140w: 1.482
-   f160w: 2.271
+# detect_minarea: [6.0, 10.0]
+# detect_thresh:  [1.0, 6.0]
+# clean_param:    [1.0, 0.5]
+skyrms_factor:  # scaling factor for flux error within ISO aperture
+   f435w: 1.383
+   f606w: 1.491
+   f814w: 1.509
+   f105w: 1.988
+   f125w: 2.021
+   f140w: 2.000
+   f160w: 2.176
 # apercol: 'APER_1'  
 # the aperture suffix that has the right aperture size for flux errors
