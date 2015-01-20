@@ -63,7 +63,18 @@ class Distribution1D(stats.rv_discrete):
          vmin, vmax = self.minmax()
          xgrid = np.linspace(vmin, vmax, xgrid+1)
       cdf = self.CDF(xgrid)
+      # print xgrid
       # cdf = cdf / cdf.max()  # normalize max(CDF) to 1
+      if (cdf[0] > pHigh) or (cdf[1] < pLow):
+         # The distribution is strongly non-Gaussian, with most of the 
+         # probabilities piled up at the low end... will quote the maximum
+         # value instead
+         print "*********************************"
+         print "Distribution is strongly skewed!!"
+         print "*********************************"
+         if print_it: 
+            print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (scale*x0, scale*(xgrid[-1]-x0), scale*(x0-xgrid[0]))
+         return xgrid[0], xgrid[-1]
       xinterval = np.sort(xgrid[(cdf >= pLow) & (cdf <= pHigh)])
       xinterval = scale * xinterval
       # print len(xinterval)
