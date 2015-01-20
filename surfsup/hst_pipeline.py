@@ -27,6 +27,7 @@ def abmag_to_uJy(mag):
 class HSTPipeline(object):
   def __init__(self, cluster_name, paramfile_name):
     paramfile = os.path.join(surfsup_dir, paramfile_name)
+    self.paramfile = paramfile
     if not os.path.exists(paramfile):
       print "Parameter file %s does not exists." % os.path.split(paramfile)[-1]
       print "The parameter files are available for the following clusters:"
@@ -62,6 +63,8 @@ class HSTPipeline(object):
       self.wht_type = c['wht_type'].upper()
     except:
       self.wht_type = 'MAP_WEIGHT'
+    self.segimage = self.drz_images[f].replace('drz', 'seg')
+    self.bkgimage = self.drz_images[f].replace('drz', 'bkg')
 
   def make_flag(self, overwrite=False):
     """
@@ -87,7 +90,8 @@ class HSTPipeline(object):
       args += ['-c', self.sex_config[f]]
       args += ['-CATALOG_NAME', self.sex_catalog[f]]
       if f == self.detectband:
-        args += ['-CHECKIMAGE_NAME', self.drz_images[f].replace('drz', 'seg')]
+        args += ['-CHECKIMAGE_TYPE', 'SEGMENTATION,BACKGROUND']
+        args += ['-CHECKIMAGE_NAME', '%s,%s' % (self.segimage, self.bkgimage)]
       args += ['-BACKPHOTO_TYPE', 'LOCAL']
       args += ['-WEIGHT_IMAGE', '%s,%s' % (self.wht_images[self.detectband], self.wht_images[f])]
       args += ['-WEIGHT_TYPE', '%s,%s' % (self.wht_type, self.wht_type)]
@@ -103,12 +107,13 @@ class HSTPipeline(object):
       self.sex2fits(f)
       self.add_filternames(f)
 
-  def sex2fits(self, f, overwrite=True):
+  def sex2fits(self, f):
     # Convert SExtractor catalogs into FITS tables
     print "Convert SExtractor catalogs into FITS tables..."
-    if (overwrite==True) or (os.path.exists(self.sex_fitstable[f]==False)):
-      c = sextractor(self.sex_catalog[f])
-      fitsutil.sex2fits(c, self.sex_fitstable[f])
+    if os.path.exists(self.sex_fitstable[f]):
+      os.remove(self.sex_fitstable[f])
+    c = sextractor(self.sex_catalog[f])
+    fitsutil.sex2fits(c, self.sex_fitstable[f])
 
   def add_filternames(self, f):
     # prepend the FITS table columns by filter name
@@ -298,6 +303,7 @@ class HSTPipeline(object):
     assert len(merged_columns) <= 999, "Warning: maximum number of columns allowed in a FITS table is 999!"
     coldefs = pyfits.ColDefs(merged_columns)
     tbhdu = pyfits.new_table(coldefs)
+    tbhdu.header['PARAMS'] = self.paramfile
     merged_table = os.path.join(self.homedir, self.merged_table)
     print merged_table
     if os.path.exists(merged_table):
@@ -328,20 +334,22 @@ class HSTPipeHot(HSTPipeline):
       if os.path.exists(self.sex_fitstable[b]):
         os.remove(self.sex_fitstable[b])
     # hot-mode-specific parameters
-    self.detect_minarea = c['detect_minarea'][0]
-    self.detect_thresh = c['detect_thresh'][0]
-    self.clean_param = c['clean_param'][0]
+    # self.detect_minarea = c['detect_minarea'][0]
+    # self.detect_thresh = c['detect_thresh'][0]
+    # self.clean_param = c['clean_param'][0]
     self.segimage = '%s_%s_%s_hot_seg.fits' % (self.detectband, self.cluster_name.lower(), scalestr)
+    self.bkgimage = '%s_%s_%s_hot_bkg.fits' % (self.detectband, self.cluster_name.lower(), scalestr)
 
   def run_sextractor(self, filters=[], sex_kwargs={}):
-    if not sex_kwargs.has_key('detect_minarea'):
-      sex_kwargs['detect_minarea'] = self.detect_minarea
-    if not sex_kwargs.has_key('detect_thresh'):
-      sex_kwargs['detect_thresh'] = self.detect_thresh
-    if not sex_kwargs.has_key('clean_param'):
-      sex_kwargs['clean_param'] = self.clean_param
-    if not sex_kwargs.has_key('checkimage_name'):
-      sex_kwargs['checkimage_name'] = self.segimage
+    # if not sex_kwargs.has_key('detect_minarea'):
+    #   sex_kwargs['detect_minarea'] = self.detect_minarea
+    # if not sex_kwargs.has_key('detect_thresh'):
+    #   sex_kwargs['detect_thresh'] = self.detect_thresh
+    # if not sex_kwargs.has_key('clean_param'):
+    #   sex_kwargs['clean_param'] = self.clean_param
+    # sex_kwargs['checkimage_type'] = 'BACKGROUND,SEGMENTATION'
+    # sex_kwargs['checkimage_name'] = "%s,%s" % (self.bkgimage, self.segimage)
+    print "sex_kwargs:", sex_kwargs
     super(HSTPipeHot, self).run_sextractor(filters=filters, **sex_kwargs)
 
 class HSTPipeCold(HSTPipeline):
@@ -378,6 +386,7 @@ class HSTPipeCold(HSTPipeline):
       sex_kwargs['clean_param'] = self.clean_param
     if not sex_kwargs.has_key('checkimage_name'):
       sex_kwargs['checkimage_name'] = self.segimage
+    print "sex_kwargs:", sex_kwargs
     super(HSTPipeCold, self).run_sextractor(filters=filters, **sex_kwargs)
 
 class CombineColdHot(object):
