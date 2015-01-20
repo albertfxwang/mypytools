@@ -7,6 +7,7 @@ from pygoods import fitstable, Ftable, sextractor, angsep
 from datetime import datetime
 from PhotomTools import photomUtils as pu
 from stats import stats_simple as ss
+import matplotlib.pyplot as plt
 
 # because Le Phare requires the input catalog contain magnitudes for each 
 # filter used to create the libraries, and I don't want to create libraries 
@@ -19,6 +20,13 @@ lephare_filters = ['f435w','f475w','f555w','f606w','f625w','f775w','f814w',\
 # magnitudes/limits.
 clash_bands = ['f435w','f475w', 'f555w', 'f606w','f625w','f775w','f814w','f850lp','f098m','f105w','f110w','f125w','f140w','f160w']
 clash_eazy_hdr = "# id f_irac2 e_irac2 f_irac1 e_irac1 f_f160w e_f160w f_f140w e_f140w f_f125w e_f125w f_f110w e_f110w f_f105w e_f105w f_f098m e_f098m f_f850lp e_f850lp f_f814w e_f814w f_f775w e_f775w f_f625w e_f625w f_f606w e_f606w f_f555w e_f555w f_f475w e_f475w f_f435w e_f435w"
+# Taken as either the central or the pivot wavelength (A)... doesn't need to 
+# be too accurate because it's for plotting purposes
+efflam = dict(f435w=4311., f475w=4775.7, f555w=5356.0, f606w=5888., 
+              f625w=6295.5, f775w=7665.1, f814w=8115.3, f850lp=9145.2,
+              f098m=9864.0, f105w=10552.0, f110w=11534.0, f125w=12486.0, 
+              f140w=13923.0, f160w=15369.0, irac1=36000., irac2=45000.)
+
 
 class HSTcatalog(fitstable.Ftable):
    def __init__(self, filename):
@@ -74,8 +82,12 @@ class HSTcatalog(fitstable.Ftable):
       if print_it: print mag_auto - mag_color
       return mag_auto - mag_color
  
-   def get_mag(self, number, band, magform='auto'):
+   def get_mag(self, number, band, magform='auto', refband='f160w'):
       # also calculates aperture correction errors
+      # If magform=='iso', it returns the **aperture-corrected** MAG_ISO; i.e.,
+      # it will return MAG_ISO + apcor. So if band==refband, it will return the 
+      # same magnitudes for magform='auto' or 'iso', but the magntiude errors
+      # will be different
       band = band.lower()
       magform = magform.lower()
       mag = getattr(self, '%s_mag_%s' % (band, magform))[self.number==number][0]
@@ -83,7 +95,8 @@ class HSTcatalog(fitstable.Ftable):
          apcor = 0.
          magerr_auto = 0.
       else:
-         apcor = self.print_apcor(number, colorcol=magform, print_it=False)
+         apcor = self.print_apcor(number, colorcol=magform, print_it=False,
+                                  refband=refband)
          magerr_auto = getattr(self, '%s_magerr_auto' % band)[self.number==number][0]
       if magform == 'iso':
          mag_err = getattr(self, '%s_magerr_iso' % (band))[self.number==number][0]
@@ -107,14 +120,62 @@ class HSTcatalog(fitstable.Ftable):
          return 99.0, mag_1sig + apcor
       else:
          return mag, mag_err
+
+   def get_all_mags(self, number, bands, colorcol='iso'):
+      # Assume that bands[0] is the reference band
+      mags = np.zeros(len(bands))
+      magerrs = np.zeros(len(bands))
+      for i in range(len(bands)):
+         if i == 0:
+            mag, magerr = self.get_mag(number, bands[i], magform='auto', 
+                                       refband=bands[0])
+         else:
+            mag, magerr = self.get_mag(number, bands[i], magform=colorcol,
+                                       refband=bands[0])
+         mags[i] = mag
+         magerrs[i] = magerr
+      return mags, magerrs
  
-   def print_mag(self, number, band, magform='auto', print_it=True):
+   def print_mag(self, number, band, magform='auto', print_it=True, refband='f160w'):
       # Does NOT include errors in aperture correction
-      mag, mag_err = self.get_mag(number, band, magform=magform)
+      mag, mag_err = self.get_mag(number, band, magform=magform, 
+                                  refband=refband)
       outstr = "%.2f +/- %.3f" % (mag, mag_err)
       if print_it:
         print outstr
       return outstr 
+
+   def plot_all_mags(self, objid, bands, colorcol='iso', ax=None, xoffset=0., **ebar_kwargs):
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+      mags, magerrs = self.get_all_mags(objid, bands, colorcol=colorcol)
+      wave = np.array([efflam[b] for b in bands]) + xoffset
+      ax.errorbar(wave, mags, yerr=magerrs, **ebar_kwargs)
+      plt.gca().invert_yaxis()
+      return ax
+
+   def plot_all_mags_objects(self, objids, bands, objnames=None, colorcol='iso', **ebar_kwargs):
+      ebar_kwargs_default = dict(elinewidth=2, capsize=8)
+      for k in ebar_kwargs_default.keys():
+         if k not in ebar_kwargs.keys():
+            ebar_kwargs[k] = ebar_kwargs_default[k]
+      fig = plt.figure()
+      ax = fig.add_subplot(111)
+      for i in range(len(objids)):
+         x = objids[i]
+         xoffset = 20 * i
+         if objnames == None:
+            objname = '%d' % x
+         else:
+            assert len(objnames) == len(objids), "Length of objnames is different from the length of objids..."
+            objname = objnames[i]
+         ax = self.plot_all_mags(x, bands, colorcol=colorcol, ax=ax, 
+                                 xoffset=xoffset, label=objname, **ebar_kwargs)
+      ax.legend(loc=0)
+      ax.set_xlabel('Wavelength (A)')
+      ax.set_ylabel('magnitude [%s]' % colorcol.upper())
+      return ax
 
    def combine_mag(self, numbers, band, magzero, magform='auto', print_it=False):
       # Combine fluxes from more than 1 segmentation
@@ -143,19 +204,74 @@ class HSTcatalog(fitstable.Ftable):
          magerrTot = magzero - 2.5 * np.log10(fluxerrTot)
       return magTot, magerrTot
 
-   def calc_color(self, objid, band1, band2, print_it=False):
-      mag1, magerr1 = self.get_mag(objid, band1, magform='iso')
-      mag2, magerr2 = self.get_mag(objid, band2, magform='iso')
-      color = mag1 - mag2
-      color_err = np.sqrt(magerr1**2 + magerr2**2)
+   def calc_color(self, objid, band1, band2, colorcol='iso', print_it=False):
+      mag1, magerr1 = self.get_mag(objid, band1, magform=colorcol)
+      mag2, magerr2 = self.get_mag(objid, band2, magform=colorcol)
+      if (mag1 < 90) & (mag2 < 90):
+         color = mag1 - mag2
+         color_err = np.sqrt(magerr1**2 + magerr2**2)
+      else:
+         color = 0.
+         color_err = 10.
       return color, color_err
 
-   def calc_all_colors(self, objid, bands):
+   def calc_all_colors(self, objid, bands, colorcol='iso'):
+      colors = []
+      color_errs = []
       for i in range(len(bands) - 1):
-         color, color_err = self.calc_color(objid, bands[i], bands[i+1])
+         color, color_err = self.calc_color(objid, bands[i], bands[i+1],
+                                            colorcol=colorcol)
+         colors.append(color)
+         color_errs.append(color_err)
          print "%s-%s = %.3f +/- %.3f" % (bands[i],bands[i+1],color,color_err)
+      return np.array(colors), np.array(color_errs)
 
-   def test_same_color(self, objids, bands):
+   def plot_all_colors(self, objid, bands, ax=None, colorcol='iso', xoffset=0., **ebar_kwargs):
+      """
+      Plot all colors for one object.
+      """
+      wave = np.array([efflam[b] for b in bands])
+      # Use the mean wavelength between adjacent filters for the color
+      # colorwave = np.array([np.mean([wave[i],wave[i+1]]) for i in range(len(wave)-1)]) + xoffset
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+      colors, color_errs = self.calc_all_colors(objid, bands, colorcol=colorcol)
+      xdata = np.arange(len(wave)-1) + 0.5 + xoffset
+      ax.errorbar(xdata[color_errs<10], colors[color_errs<10], 
+                  yerr=color_errs[color_errs<10], **ebar_kwargs)
+      # set x-axis labels
+      ax.set_xticks(range(len(wave)))
+      ax.set_xticklabels([b.upper() for b in bands])
+      ax.set_xlabel('Filters')
+      ax.set_xlim(xmin=-0.5, xmax=len(wave)-0.5)
+      ax.set_ylabel('Color [%s]' % colorcol.upper())
+      return ax
+
+   def plot_all_colors_objects(self, objids, bands, objnames=None, colorcol='iso', **ebar_kwargs):
+      ebar_kwargs_default = dict(elinewidth=2, capsize=8, linestyle='none',
+                                 fmt='x', ms=10, mew=2)
+      for k in ebar_kwargs_default.keys():
+         if k not in ebar_kwargs.keys():
+            ebar_kwargs[k] = ebar_kwargs_default[k]
+      fig = plt.figure()
+      ax = fig.add_subplot(111)
+      for i in range(len(objids)):
+         x = objids[i]
+         xoffset = 0.05 * i
+         if objnames == None:
+            objname = '%d' % x
+         else:
+            assert len(objnames) == len(objids), "Length of objnames is different from the length of objids..."
+            objname = objnames[i]
+         ax = self.plot_all_colors(x, bands, colorcol=colorcol, ax=ax, 
+                                 xoffset=xoffset, label=objname, **ebar_kwargs)
+      ax.legend(loc=0)
+      ax.set_ylabel('Color [%s]' % colorcol.upper())
+      return ax
+
+
+   def test_same_color(self, objids, bands, colorcol='iso'):
       """
       Test if all the colors from objids are consistent within 
       errors.
@@ -164,8 +280,8 @@ class HSTcatalog(fitstable.Ftable):
       for i in range(len(bands) - 1):
          b1 = bands[i]
          b2 = bands[i+1]
-         colors = [self.calc_color(x, b1, b2)[0] for x in objids]
-         color_errs = [self.calc_color(x, b1, b2)[1] for x in objids]
+         colors = [self.calc_color(x, b1, b2, colorcol=colorcol)[0] for x in objids]
+         color_errs = [self.calc_color(x, b1, b2, colorcol=colorcol)[1] for x in objids]
          # color1, color_err1 = self.calc_color(objid1, b1, b2)
          # color2, color_err2 = self.calc_color(objid2, b1, b2)
          # same = ss.consistent_sigma(color1, color_err1, color2, color_err2)
@@ -208,6 +324,8 @@ class HSTcatalog(fitstable.Ftable):
       # MAG_ISO from other bands, normalized to match MAG_AUTO in refband 
       print "Information about object %d:" % objid
       print "RA, DEC = %.7f, %.7f" % self.print_radec(objid, print_it=False) 
+      mags = []
+      magerrs = []
       apcor = self.print_apcor(objid, colorcol=colorcol, refband=bands[0], print_it=False)
       print "%s magnitude: %s" % (bands[0], self.print_mag(objid, bands[0], magform='auto', print_it=False))
       for b in bands[1:]:
