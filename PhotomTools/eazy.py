@@ -85,7 +85,6 @@ class EAZY(object):
       header = temp._header.split('\n')
       h2 = header[1].split('templ:norm')[-1].split(':')
       MOD_BEST = int(h2[0])
-      print "MOD_BEST: ", (MOD_BEST)
       ## MOD_BEST is the model number in TEMPLATES_FILE; the file order has
       ## to match between TEMPLATES_FILE and physfile for the best-fit physical
       ## Calculate the normalization factor, from template to observed flux
@@ -605,13 +604,14 @@ def plot_HST_IRAC_all_1panel(objid, ax=None, colors=['blue','maroon'], outputfil
    return axes
 
 class MCEAZY(EAZY):
-   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys):
+   def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, with_specz=False):
       EAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, 
-                    paramfile='zphot.param.orig')
+                    paramfile='zphot.param.orig', with_specz=with_specz)
       # os.system('cp zphot.param zphot.param.orig') 
       # make a copy of the original zphot.param
       # Also read zphot.param
       self.param_lines = {}
+      self.with_specz = with_specz
       with open('zphot.param.orig', 'rb') as f:
          lines = f.readlines()
          for i in range(len(lines)):
@@ -635,11 +635,17 @@ class MCEAZY(EAZY):
       for i in range(niter):
          objids += [x + '-%d' % i for x in self.c._1]
       grand_output = [objids]
+      if self.with_specz:
+         grand_output += [np.tile(self.c._2, niter)]
       # grand_output = [self.c._1]  # the ID column
       # new_fluxerr = np.zeros((len(self.c), self.nbands))
       for i in range(self.nbands):
-         flux_col = i * 2 + 2
-         fluxerr_col = flux_col + 1
+         if self.with_specz:
+            flux_col = i * 2 + 3
+            fluxerr_col = flux_col + 1
+         else:
+            flux_col = i * 2 + 2
+            fluxerr_col = flux_col + 1
          old_flux = getattr(self.c, "_%d" % flux_col)
          old_fluxerr = getattr(self.c, "_%d" % fluxerr_col)
          old_fluxerr_floor = np.maximum(1.e-6, old_fluxerr)
@@ -759,12 +765,12 @@ def fix_header(fname):
             f2.write(lines[j])
    print "Done."
 
-def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200):
+def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False):
    """
    Read the Monte Carlo simulation results and calculate confidence intervals.
    """
    mc = sextractor('MonteCarlo/' + objname + '.mc')
-   bf = EAZY()
+   bf = EAZY(with_specz=with_specz)
    bf.read_output()
    R = bf.read_SED(objname)
    #bestprops = temp, z_best, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
@@ -788,7 +794,11 @@ def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200):
    print "======================================="
    print "Best-fit E(B-V) = %.2f" % R[6]
    print ""
-   for x in ['zbest','smass','log_age','sfr']:      
+   if with_specz:
+      properties = ['smass', 'log_age', 'sfr']
+   else:
+      properties = ['zbest','smass','log_age','sfr']
+   for x in properties:      
       if x == 'smass':
          d = distributions.Distribution1D(mc.smass[filt])
          print "%s: %f * 10^9 M_solar" % (x, bestprops[x] * 1.e-9)
@@ -873,3 +883,9 @@ class Plot_MCEAZY(object):
          ax.set_title("")
       plt.suptitle(self.objname, size=28)
       return [ax1,ax2,ax3,ax4]
+
+# class Plot_MCEAZY_wspaec(object):
+#    def __init__(self, objname):
+#       self.c1 = sextractor('MonteCarlo/%s.mc' % objname)
+#       self.objname = objname
+
