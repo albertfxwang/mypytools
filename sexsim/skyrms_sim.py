@@ -223,6 +223,19 @@ def calc_local_fluxerr(band, ra, dec, magzero, radius=20., root='skyrms', aperco
    print "Mean & sigma of the flux around (RA, DEC) = (%.7f, %.7f) are %.3e, %.3e" % (ra, dec, flux_stats[0], flux_stats[1])
    print "This corresponds to a 1-sigma magnitude limit of %.3f." % (magzero - 2.5 * np.log10(flux_stats[1]))
 
+def calc_local_scaling_factor(band, ra, dec, magzero, radius=20., root='skyrms', apercol='iso', fit_sky=False):
+   sex_flux, sex_fluxerr = collect_fluxerr(band, root=root, apercol=apercol,
+                                           ra_center=ra, dec_center=dec, 
+                                           radius=radius, 
+                                           fit_sky=fit_sky)
+   assert len(sex_flux) > 0, "No simulated sources found..."
+   print "Number of simulated sources: ", len(sex_flux)
+   flux_stats = gauss.fitgauss(sex_flux[(sex_fluxerr>0)], clip=True, disp=0)
+   fluxerr_stats = gauss.fitgauss(sex_fluxerr[(sex_fluxerr>0)], clip=True, disp=0)
+   factor = flux_stats[1] / fluxerr_stats[0]
+   print "Scaling factor in %s from median(fluxerr) to sigma(flux_empty) is %.3f" % (band.upper(), factor)
+   return factor
+
 def calc_scaling_factor(band, root='skyrms', apersize=0.4, apercol='iso', fit_sky=False):
    # Use ISO aperture to calculate the scaling factor, because we know the 
    # number of pixels (isoarea_image) SExtractor uses to calculate flux errors
