@@ -25,80 +25,84 @@ pc_cm = 3.0857e18
 area_tenpc = 4.*np.pi*(10.*pc_cm)**2  # 4*pi*R**2 with R = 10 parsec in centimeter
 
 
-class FileSED(spectrum.FileSourceSpectrum):
-   ## Made obsolete now with the new-found method in pysynphot?? (2014/11/17)
-   def __init__(self, filename, fluxname=None, keepneg=False):
-      # just use the definition from FileSourceSpectrum
-      super(FileSED, self).__init__(filename, fluxname=fluxname, keepneg=keepneg)
-      # by default, flux unit = Flam and wavelength unit = angstrom
+# class FileSED(spectrum.FileSourceSpectrum):
+#    ## Made obsolete now with the new-found method in pysynphot?? (2014/11/17)
+#    def __init__(self, filename, fluxname=None, keepneg=False):
+#       # just use the definition from FileSourceSpectrum
+#       super(FileSED, self).__init__(filename, fluxname=fluxname, keepneg=keepneg)
+#       # by default, flux unit = Flam and wavelength unit = angstrom
 
-   def ABmag(self, bandpass):
-      if bandpass == None:
-         bandpass = S.ArrayBandpass(defwaveset, np.ones(len(defwaveset)))
-      stflux = 10.**(48.6/-2.5)
-      # abu = S.ArraySpectrum(defwaveset, 
-      #                       np.ones(len(defwaveset))*stflux,
-      #                       fluxunits='fnu')
-      if bandpass.wave[-1] > self.wave[-1]: 
-         # if bandpass wavelenth range is longer than spectrum    
-         n = np.searchsorted(bandpass.wave, self.wave[-1])
-         merge = np.concatenate((self.wave, bandpass.wave[n:]))
-         merge = np.sort(np.unique(merge))
-         flux_standard = S.ArraySpectrum(merge, np.ones(len(merge))*stflux,
-                                         fluxunits='fnu')
-      else:
-         flux_standard = S.ArraySpectrum(self.wave, np.ones(len(self.wave))*stflux,
-                                         fluxunits='fnu') 
-      numerator = (self * bandpass).integrate('fnu')
-      denominator = (flux_standard * bandpass).integrate('fnu')
-      ratio = numerator / denominator
-      if ratio <= 0.:
-         abmag = 999.
-      else:
-         abmag = -2.5 * np.log10(ratio)
-      return abmag
+#    def ABmag(self, bandpass):
+#       if bandpass == None:
+#          bandpass = S.ArrayBandpass(defwaveset, np.ones(len(defwaveset)))
+#       stflux = 10.**(48.6/-2.5)
+#       # abu = S.ArraySpectrum(defwaveset, 
+#       #                       np.ones(len(defwaveset))*stflux,
+#       #                       fluxunits='fnu')
+#       if bandpass.wave[-1] > self.wave[-1]: 
+#          # if bandpass wavelenth range is longer than spectrum    
+#          n = np.searchsorted(bandpass.wave, self.wave[-1])
+#          merge = np.concatenate((self.wave, bandpass.wave[n:]))
+#          merge = np.sort(np.unique(merge))
+#          flux_standard = S.ArraySpectrum(merge, np.ones(len(merge))*stflux,
+#                                          fluxunits='fnu')
+#       else:
+#          flux_standard = S.ArraySpectrum(self.wave, np.ones(len(self.wave))*stflux,
+#                                          fluxunits='fnu') 
+#       numerator = (self * bandpass).integrate('fnu')
+#       denominator = (flux_standard * bandpass).integrate('fnu')
+#       ratio = numerator / denominator
+#       if ratio <= 0.:
+#          abmag = 999.
+#       else:
+#          abmag = -2.5 * np.log10(ratio)
+#       return abmag
 
-   def ABmag_lambda(self, wavelength, w=100.):
-      """
-      Calculate the AB magnitude at a given rest-frame wavelength lambda.
-      Use a boxcar filter centered at wavelength of width w.
-      """
-      boxcar = S.Box(wavelength, w)
-      return self.ABmag(boxcar)
+#    def ABmag_lambda(self, wavelength, w=100.):
+#       """
+#       Calculate the AB magnitude at a given rest-frame wavelength lambda.
+#       Use a boxcar filter centered at wavelength of width w.
+#       """
+#       boxcar = S.Box(wavelength, w)
+#       return self.ABmag(boxcar)
 
 
-   def Vegamag(self, band):
-      vegaflux = (vega * band).integrate()
-      # vegaflux corresponds to vegamag 0 in any band
-      flux = (self * band).integrate()
-      vegamag = -2.5 * np.log10(flux / vegaflux)
-      return vegamag
+#    def Vegamag(self, band):
+#       vegaflux = (vega * band).integrate()
+#       # vegaflux corresponds to vegamag 0 in any band
+#       flux = (self * band).integrate()
+#       vegamag = -2.5 * np.log10(flux / vegaflux)
+#       return vegamag
 
-class GalaxySED(FileSED):
-   def __init__(self, filename, fluxname=None, keepneg=None, sedproperties={}):
-      super(GalaxySED, self).__init__(filename, fluxname=fluxname, keepneg=keepneg)
-      self.ebmv = 0.
-      # now record all other physical properties of the SED
-      self.properties = sedproperties
+# class GalaxySED(spectrum.FileSourceSpectrum):
+#    def __init__(self, filename="", spec=None, fluxname=None, keepneg=None, sedproperties={}):
+#       super(GalaxySED, self).__init__(filename, fluxname=fluxname, keepneg=keepneg)
+#       self.ebmv = 0.
+#       # now record all other physical properties of the SED
+#       self.properties = sedproperties
 
-   def add_dust(self, ebmv, law='xgal'):
-      dust = S.Extinction(ebmv, law)
-      sp2 = self * dust
-      self._fluxtable = self.fluxunits.Convert(self._wavetable, 
-                                               sp2.sample(self._wavetable), 
-                                               'photlam')
+#    def add_dust(self, ebmv, law='xgal'):
+#       dust = S.Extinction(ebmv, law)
+#       sp2 = self * dust
+#       self._fluxtable = self.fluxunits.Convert(self._wavetable, 
+#                                                sp2.sample(self._wavetable), 
+#                                                'photlam')
 
-   def add_lya(self, equiv_length):
-      # look at simkcorr.py for how to do this
-      raise NotImplementedError
+#    def add_lya(self, equiv_length):
+#       # look at simkcorr.py for how to do this
+#       raise NotImplementedError
 
 class GalaxySEDFactory(object):
    """
    A factory that creates GalaxySED instances corresponding to a given rest-frame
    model SED.
    """
-   def __init__(self, filename, cosmo=cosmo_def, sedproperties={}, normmag=-21., normband=1500.):
-      self.sp = GalaxySED(filename, sedproperties=sedproperties)
+   def __init__(self, filename="", spec=None, cosmo=cosmo_def, sedproperties={}, normmag=-21., normband=1500.):
+      if len(filename):
+         # self.sp = GalaxySED(filename, sedproperties=sedproperties)
+         self.sp = S.FileSpectrum(filename)
+      else:
+         self.sp = spec  # can use any spectrum
       self.cosmo = cosmo
       # manipulate self.copy, leave alone self.sp
       self.copy = copy.deepcopy(self.sp)  
@@ -127,18 +131,22 @@ class GalaxySEDFactory(object):
       if type(normband) in [type(0), type(0.0)]:
          # abmag = self.copy.ABmag_lambda(normband)
          filt = S.Box(normband, 100.)
-         obs = S.Observation(self.copy, filt)
+         # obs = S.Observation(self.copy, filt)
+         obs = S.Observation(self.sp, filt)
          abmag = obs.effstim('abmag')
       else:
          # abmag = self.copy.ABmag(normband)
-         obs = S.Observation(self.copy, normband)
+         # obs = S.Observation(self.copy, normband)
+         obs = S.Observation(self.sp, normband)
          abmag = obs.effstim('abmag')
       dmag = normmag - abmag
-      self.copy._fluxtable = self.copy._fluxtable * 10.**(-0.4 * dmag)
+      # self.copy._fluxtable = self.copy._fluxtable * 10.**(-0.4 * dmag)
+      self.copy = self.sp * 10.**(-0.4 * dmag)
       self.normband = normband
       self.normmag = normmag
       # self.sp = self.sp * 10.**(-0.4 * dmag) * area_tenpc
       # multiply the flux by 10 pic
+      return 10.**(-0.4 * dmag)
 
    def redshift_no_igm(self, z):
       """
@@ -173,13 +181,15 @@ class GalaxySEDFactory(object):
       sp_igm = self.copy * igm   # attenuated by IGM **before** redshift
       lam, flam = sp_igm.getArrays()
       # copy the wavelengths and fluxes to self.copy
-      self.copy._wavetable = lam
-      self.copy._fluxtable = self.copy.fluxunits.Convert(lam, 
-                             flam, 'photlam')
+      # self.copy._wavetable = lam
+      # self.copy._fluxtable = self.copy.fluxunits.Convert(lam, 
+      #                        flam, 'photlam')
+      self.copy = S.ArraySpectrum(lam, flam)
+      self.copy.convert('photlam')
 
       # now redshift the spectrum using the function defined above 
-      self.redshift_no_igm(z)
-      return self.copy
+      newcopy = self.redshift_no_igm(z)
+      return newcopy
 
 class ZColorFactory(GalaxySEDFactory):
    """
