@@ -75,6 +75,28 @@ class EAZY(object):
       for i in range(1, len(hdr_list)+1):
          setattr(self, hdr_list[i-1].lower(), getattr(out, "_%d" % i))
 
+   def read_photz_errors(self, mode='a', nsig=1):
+      """
+      Read phot-z errors (relative to the peak of P(z)) for plotting with 
+      plt.errorbar.
+      """
+      self.read_output()
+      if mode == 'a':
+         zbest = self.z_a
+      elif mode == '1':
+         zbest = self.z_1
+      else:
+         zbest = self.z_2
+      if nsig == 1:
+         zlo = self.l68
+         zhi = self.u68
+      else:
+         zlo = self.l95
+         zhi = self.u95
+      error_lo = zbest - zlo
+      error_hi = zhi - zbest
+      return [zbest, error_lo, error_hi]
+
    def read_SED(self, objid, mode='1'):
       """
       Read the best-fit SED and determine the best-fit physical properties.
@@ -125,16 +147,23 @@ class PlotEAZY(EAZY):
       self.phys = sextractor(physfile)
       self.wavelim = wavelim
 
-   def plot_Pz(self, objid, ax=None, savefig=True, mode='a', **plot_kwargs):
+   def plot_Pz(self, objid, ax=None, savefig=True, mode='a', specz=-1, **plot_kwargs):
       assert objid in self.objid, "Object ID %s does not exist in catalog." % str(objid)
       pz = sextractor("OUTPUT/%s.pz" % str(objid))
       if ax == None:
          fig = plt.figure()
          ax = fig.add_subplot(111)
+      pz._2 = pz._2 - pz._2.min()
+      print pz._2.min(), pz._2.max()
       prob = np.exp(-0.5 * pz._2)
+      print prob.min(), prob.max()
       probIntegrated = cumtrapz(prob, x=pz._1)[-1]
       prob = prob / probIntegrated
       ax.plot(pz._1, prob, **plot_kwargs)
+      if specz > 0:
+         ax.plot([specz, specz], [0., ax.get_ylim()[1]], lw=2, ls='--', 
+                 c='navy', label=r'$z_{\mathrm{spec}}=%.3f$' % specz)
+      ax.legend(loc=0)
       ax.set_xlabel('Redshift')
       ax.set_ylabel(r'$P(z)$')
       if mode == 'a':
@@ -152,8 +181,9 @@ class PlotEAZY(EAZY):
       """
       Show the P(z) for multiple objects in the same plot.
       """
-      fig = plt.figure()
-      ax = fig.add_subplot(111)
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
       for x in objids:
          ax, z_peak = self.plot_Pz(x, ax=ax, savefig=False, mode=mode, **plot_kwargs)
          ax.lines[-1].set_label('%s [z_peak = %.2f]' % (x, z_peak))
@@ -240,7 +270,8 @@ class PlotEAZY(EAZY):
          plt.savefig('OUTPUT/%s_SED.png' % str(objid))
       return ax, z_peak, [mass_best, 10.**log_age_best, sfr_best, tau, ebmv]
 
-   def plot_all(self, objid, objname="", savefig=True, legend_loc=1, mode='1'):
+
+   def plot_all(self, objid, objname="", savefig=True, legend_loc=1, mode='1', specz=-1):
       fig = plt.figure(figsize=(10,12))
       ax1 = fig.add_subplot(211)
       ax1.set_yscale('log')
@@ -249,7 +280,8 @@ class PlotEAZY(EAZY):
       ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode,
                                      plot_kwargs=dict(color='blue',lw=2))
       ax2 = fig.add_subplot(212)
-      ax2, zp = self.plot_Pz(objid, ax=ax2, savefig=False, mode=mode, lw=2)
+      ax2, zp = self.plot_Pz(objid, ax=ax2, savefig=False, mode=mode, lw=2,
+                             specz=specz)
       ax2.set_title("")
       if len(objname):
          ax1.set_title('Object %s [z_peak = %.3f]' % (objname, zp))
@@ -258,6 +290,97 @@ class PlotEAZY(EAZY):
       if savefig:
          plt.savefig("%s_SED_Pz.png" % str(objid))
       return fig
+
+   def plot_all_1panel(self, objid, objname="", savefig=False, legend_loc=1, mode='1', specz=-1, xlow2=0.65, xsize2=0.3, ylow2=0.12, ysize2=0.3, legendfontsize='medium', pztickfontsize='large', pztextfontsize='large', zmax=6):
+      fig = plt.figure(figsize=(10, 8))
+      ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+      print "\nPlotting %s..." % objid
+      ax1.set_yscale('log')
+      ax1.set_xscale('log')
+      ax1 = self.plot_photom(objid, ax=ax1)
+      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode,
+                                     plot_kwargs=dict(color='blue',lw=2))
+      # Now plot P(z)
+      bbox1 = ax1.get_position()
+      xlow2, ylow2 = bbox1.p0 + bbox1.size * np.array([xlow2, ylow2])
+      xsize2, ysize2 = bbox1.size * np.array([xsize2, ysize2])
+      # print "Boundaries for ax1:"
+      # print np.concatenate([bbox1.p0, bbox1.size])
+      # print "New values for the boundaries of ax2:"
+      print xlow2, ylow2, xsize2, ysize2
+      ax2 = fig.add_axes([xlow2, ylow2, xsize2, ysize2])
+      ax2, zp = self.plot_Pz(objid, ax=ax2, savefig=False, mode=mode, lw=2,
+                             specz=specz)
+      ax2.set_title("")
+      ax2.set_xlim(-0.1, zmax)
+      if ax2.legend():
+         ax2.legend().set_visible(False)  # turn off P(z) legend
+      ax2.set_yticklabels([])
+      ax2.set_ylabel(ax2.get_ylabel(), size=pztickfontsize)
+      ax2.legend(fontsize=pztextfontsize)
+      if len(objname):
+         ax1.set_title('Object %s [z_peak = %.3f]' % (objname, zp))
+      plt.draw()
+      if savefig:
+         plt.savefig("%s_SED_Pz.png" % str(objid))
+      return fig
+
+
+   def plot_multiple_all(self, objids, objnames=[], ncols=2, savefig=False, legend_loc=1, mode='a', **plt_kwargs):
+      """
+      Plot SED fits and P(z) in subplots. One subplot for each SED fit, and 
+      one subplot showing all the P(z) curves.
+      """
+      plt_kwargs_def = dict(color='blue',lw=2)
+      for k in plt_kwargs.keys():
+         plt_kwargs_def[k] = plt_kwargs[k]
+      fig = plt.figure(figsize=(14,12))
+      n_plots = len(objids) + 1
+      if n_plots % ncols == 0:
+         nrows = n_plots / ncols
+      else:
+         nrows = n_plots / ncols + 1
+      print "nrows, ncols:", nrows, ncols
+      axes = []
+      # Plot individual SED fits
+      for i in range(len(objids)):
+         ax = fig.add_subplot(nrows, ncols, i+1)
+         ax.set_yscale('log')
+         ax.set_xscale('log')
+         ax = self.plot_photom(objids[i], ax=ax)
+         ax, zp, props = self.plot_SED(objids[i], ax=ax, mode=mode,
+                                       plot_kwargs=plt_kwargs_def)
+         ax.text(0.1, 0.9, objids[i], transform=ax.transAxes, ha='left', 
+                 va='top', bbox=dict(boxstyle='round',facecolor='none'),
+                 size='x-large')
+         ax.set_title("")
+         axes.append(ax)
+      # Now plot all P(z) in the same panel
+      ax = fig.add_subplot(nrows, ncols, i+2)
+      ax = self.plot_multiple_Pz(objids, ax=ax, mode=mode, lw=2)
+      ax.legend(loc=legend_loc, fontsize='large')
+      axes.append(ax)
+      return axes
+
+   def plot_photz_vs_specz(self, specz, zmax, ax=None, mode='a', nsig=1, **ebar_kwargs):
+      """
+      Plot phot-z v.s. spec-z comparison.
+      """
+      ebar_kwargs_def = dict(fmt='s', elinewidth=1.5, capsize=8)
+      for k in ebar_kwargs.keys():
+         ebar_kwargs_def[k] = ebar_kwargs[k]
+      zbest, error_lo, error_hi = self.read_photz_errors(mode=mode, nsig=nsig)
+      assert len(specz) == len(zbest), "Please provide the same number of spec-z's as the number of objects in the catalog."
+      if ax == None:
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+      ax.errorbar(specz, zbest, yerr=[error_lo, error_hi], **ebar_kwargs_def)
+      ax.plot([0, zmax], [0, zmax], lw=2, ls='--', c='black')
+      ax.set_xlim(0, zmax)
+      ax.set_ylim(0, zmax)
+      ax.set_xlabel('spec. redshift')
+      ax.set_ylabel('phot. redshift')
+      return ax
 
 
 class PlotEAZY_wspecz(PlotEAZY):
@@ -765,7 +888,7 @@ def fix_header(fname):
             f2.write(lines[j])
    print "Done."
 
-def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False):
+def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False, mu=1.0):
    """
    Read the Monte Carlo simulation results and calculate confidence intervals.
    """
@@ -798,22 +921,24 @@ def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False):
       properties = ['smass', 'log_age', 'sfr']
    else:
       properties = ['zbest','smass','log_age','sfr']
+   print "Using magnification factor mu = %.2f:" % mu
    for x in properties:      
       if x == 'smass':
-         d = distributions.Distribution1D(mc.smass[filt])
-         print "%s: %f * 10^9 M_solar" % (x, bestprops[x] * 1.e-9)
+         d = distributions.Distribution1D(mc.smass[filt] / mu)
+         print "%s: %f * 10^9 M_solar" % (x, bestprops[x] * 1.e-9 / mu)
          scale = 1.e-9
-         x0 = bestprops[x]
+         x0 = bestprops[x] / mu
       elif x == 'log_age':
          d = distributions.Distribution1D(10.**(mc.log_age[filt]))
          print "%s: %f Myr" % (x, 10.**bestprops[x] / 1.e6)
          scale = 1.e-6
          x0 = (10.**bestprops[x])
-      else:
-         d = distributions.Distribution1D(getattr(mc, x)[filt])
-         print "%s: %f" % (x, bestprops[x])
+      elif x == 'sfr':
+         # d = distributions.Distribution1D(getattr(mc, x)[filt])
+         d = distributions.Distribution1D(mc.sfr[filt] /mu)
+         print "%s: %f" % (x, bestprops[x] / mu)
          scale = 1.0
-         x0 = bestprops[x]
+         x0 = bestprops[x] / mu
       limits = d.conf_interval(xgrid=100, p=p, x0=x0, print_it=True,
                                scale=scale)
       confint[x] = limits
