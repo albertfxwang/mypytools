@@ -74,6 +74,16 @@ class HSTcatalog(fitstable.Ftable):
          j = np.argsort(angdist)[0]
          return self.number[j]
 
+   def match_radec_many(self, ra_list, dec_list, tol=0.5, ra_col='alpha_j2000', dec_col='delta_j2000'):
+      """
+      Return a list of SExtractor IDs for given lists of RA & DEC.
+      """
+      matched_id = []
+      for i in range(len(ra_list)):
+         matched_id.append(self.match_radec(ra_list[i], dec_list[i], tol=tol,
+                           ra_col=ra_col, dec_col=dec_col))
+      return matched_id
+
    def print_apcor(self, number, colorcol='iso', refband='f160w', print_it=True):
       # print the aperture correction from the mag. form for colors (default=ISO)
       # to the AUTO mag., using the reference band (refband)
@@ -215,7 +225,7 @@ class HSTcatalog(fitstable.Ftable):
          color_err = 10.
       return color, color_err
 
-   def calc_all_colors(self, objid, bands, colorcol='iso'):
+   def calc_all_colors(self, objid, bands, colorcol='iso', print_it=True):
       colors = []
       color_errs = []
       for i in range(len(bands) - 1):
@@ -223,7 +233,8 @@ class HSTcatalog(fitstable.Ftable):
                                             colorcol=colorcol)
          colors.append(color)
          color_errs.append(color_err)
-         print "%s-%s = %.3f +/- %.3f" % (bands[i],bands[i+1],color,color_err)
+         if print_it:
+            print "%s-%s = %.3f +/- %.3f" % (bands[i],bands[i+1],color,color_err)
       return np.array(colors), np.array(color_errs)
 
    def plot_all_colors(self, objid, bands, ax=None, colorcol='iso', xoffset=0., **ebar_kwargs):
@@ -353,7 +364,7 @@ class HSTcatalog(fitstable.Ftable):
          f.write('fk5; circle(%f, %f, %.2f") # text={%d}\n' % (ra, dec, radius, x))
       f.close()
  
-   def print_eazy_flux(self, objid, header=clash_eazy_hdr, detect_band='f160w', SNLim=1.0):
+   def print_eazy_flux(self, objid, eazyid=[], header=clash_eazy_hdr, detect_band='f160w', SNLim=1.0, colorcol='iso'):
       # Provide a header line for the flux catalog to be fed into EAZY, print 
       # the fluxes and errors in uJy for the objects specified in objid
       # First, parse the header line; assume it starts with #
@@ -363,8 +374,13 @@ class HSTcatalog(fitstable.Ftable):
       # something EAZY can understand.
       h = header.split()
       obj_str = ""
+      if len(eazyid):
+         assert len(objid)==len(eazyid), "Please provide the same number for EAZY ID as the SExtractor ID."
       for i in range(len(objid)):
-         obj_str += "%d  " % objid[i]
+         if len(eazyid):
+            obj_str += "%s  " % eazyid[i]
+         else:
+            obj_str += "%d  " % objid[i]
          for j in range(len(h))[2:]:
             # apcor = self.print_apcor(objid[i], print_it=False)
             if h[j].startswith('f_'):
@@ -373,7 +389,7 @@ class HSTcatalog(fitstable.Ftable):
                   mag, mag_err = self.get_mag(objid[i], b, magform='auto')
                else:
                   try:
-                     mag, mag_err = self.get_mag(objid[i], b, magform='iso')
+                     mag, mag_err = self.get_mag(objid[i], b, magform=colorcol)
                   except:
                      # raise KeyError, "Filter %s does not exist in the catalog." % b
                      mag, mag_err = 99.0, -99.0
