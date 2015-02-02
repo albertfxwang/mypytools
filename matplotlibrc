@@ -231,8 +231,8 @@ font.monospace         : Consolas
 #mathtext.sf  : sans
 #mathtext.fontset : cm # Should be 'cm' (Computer Modern), 'stix',
                        # 'stixsans' or 'custom'
-mathtext.fontset: cm
-#mathtext.fallback_to_cm : True  # When True, use symbols from the Computer Modern
+mathtext.fontset: stixsans
+mathtext.fallback_to_cm : False  # When True, use symbols from the Computer Modern
                                  # fonts when a symbol can not be found in one of
                                  # the custom math fonts.
 
