@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 """
 Some photometry-related utility functions.
@@ -56,3 +55,24 @@ def calcNsigMag(mag, magerr, N=1.0):
       sn = magerr2sn(magerr)
       return mag + 2.5 * np.log10(sn / N)
 
+def calcColor(mag1, magerr1, mag2, magerr2):
+   """
+   A simple calculation of the color mag1-mag2, and add their errors in 
+   quadrature. If mag1 is undetected (>90), use magerr1 as the 1-sigma upper 
+   limit and calculate the lower limit of color. On the other hand, if mag2 is
+   undetected, use magerr2 to calculate the upper limit of color.
+   """
+   if mag1 > 90:
+      color = magerr1 - mag2
+      print "color >= %.3f" % color
+      return color
+   elif mag2 > 90:
+      color = mag1 - mag2err
+      print "color <= %.3f" % color
+      return color
+   else:
+      color = mag1 - mag2
+      colorerr = np.sqrt(magerr1**2 + magerr2**2)
+      print "color = %.3f +/- %.3f" % (color, colorerr)
+      return color, colorerr
+      

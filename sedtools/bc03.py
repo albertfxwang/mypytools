@@ -24,6 +24,7 @@ LyC_H = [[4861., 4.76e-13], [6563., 1.36e-12], [1282., 7.13e-14],
 # Fritze-v. Alvensleben 2003. There are different values for different 
 # metallicities: Z1=0.002 Z_solar, Z2=0.02 Z_solar, Z3=0.4 Z_solar, 
 # Z4=Z_solar, Z5=2.5 Z_solar. Values for Z >= Z3 are the same.
+# In BC03 models, m42 models correspond to Z2, and m52 models correspond to Z3!
 nebular_ratios = {'lambda':[1335., 1663., 1909., 2141., 2326., 2798., 3727.,
                            3869., 3889., 3970., 4026., 4068.6, 4076.35,
                            4363., 4471., 4711., 4958.91, 5006.84, 5199.,
@@ -37,7 +38,14 @@ nebular_ratios = {'lambda':[1335., 1663., 1909., 2141., 2326., 2798., 3727.,
                            0.010, 0.140, 0.130, 0.030, 0.136, 0.404,
                            0.030, 0.300, 0.210, 0.040, 0.035, 0.026,
                            0.014, 0.086, 0.945, 0.365, 0.048,
-                           0.058, 0.054]}
+                           0.058, 0.054],
+                  'Z2':    [0.000, 0.058, 0.000, 0.000, 0.000, 0.310, 1.791,
+                           0.416, 0.192, 0.283, 0.015, 0.017, 0.007,
+                           0.066, 0.036, 0.014, 1.617, 4.752, 0.010,
+                           0.000, 0.108, 0.041, 0.017, 0.059, 0.175,
+                           0.030, 0.188, 0.138, 0.023, 0.071, 0.027,
+                           0.014, 0.176, 0.510, 0.000, 0.000, 
+                           0.000, 0.000]}
 
 # Now also implement nebular continuum emission, mostly from HI, HeII, HeI, 
 # and the 2-photon process. The coefficients are taken from Brown & Mathews
@@ -123,10 +131,11 @@ def calc_nebular_continuum(logNLyc):
    neb_cont = neb_HI + neb_HeI + neb_2q
    return neb_cont
 
-def calc_line_EW(specfile, line):
+def calc_line_EW(specfile, line, metal='Z2'):
    """
    Calculate the equivalent width for a given line and a given galaxy template.
-   Assume the fluxes are in L_solar / A.
+   Assume the fluxes are in L_solar / A. The input spectrum file should NOT 
+   have any nebular emission lines added.
    The supported lines so far are Halpha, Hbeta, OII, OIII, CII, CIII.
    """
    sp = S.FileSpectrum(specfile)
@@ -149,16 +158,16 @@ def calc_line_EW(specfile, line):
       flux = Hbeta_flux
    elif line == 'OII':  # 3727A
       lam = nebular_ratios['lambda'][6]
-      flux = Hbeta_flux * nebular_ratios['Z3'][6]
+      flux = Hbeta_flux * nebular_ratios[metal][6]
    elif line == 'OIII':  # 4958.91A, 5007A
       lam = nebular_ratios['lambda'][16:18]
-      flux = Hbeta_flux * np.array(nebular_ratios['Z3'][16:18])
+      flux = Hbeta_flux * np.array(nebular_ratios[metal][16:18])
    elif line == 'CII':
       lam = nebular_ratios['lambda'][4]
-      flux = Hbeta_flux * nebular_ratios['Z3'][4]
+      flux = Hbeta_flux * nebular_ratios[metal][4]
    elif line == 'CIII':
       lam = nebular_ratios['lambda'][2]
-      flux = Hbeta_flux * nebular_ratios['Z3'][2]
+      flux = Hbeta_flux * nebular_ratios[metal][2]
    else:
       raise NotImplementedError, "Line %s not supported yet." % line
    if line == 'OIII':
@@ -192,7 +201,7 @@ def calc_nebular_EW_age(line, suffix='tau0.1'):
    return ages, EW
 
 
-def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=1.0, metalKey='Z3', clobber=False, verbose=False, write_header=False, continuum=False, ebmv=0., extlaw='xgal'):
+def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=1.0, metalKey='Z2', clobber=False, verbose=False, write_header=False, continuum=False, ebmv=0., extlaw='xgal'):
    """
    Add nebular emission lines to the model SED. The line strengths are 
    proportional to the Lyman continuum flux.
@@ -232,7 +241,7 @@ def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=
       sp_neb = add_emission_line(sp_neb, lam, flux, width=width, dw=dw)
       sp_neb = S.ArraySpectrum(sp_neb.wave, sp_neb.flux, fluxunits='flam')
       if verbose:
-         continuum = (sp0.sample(lam-100.) + sp0.sample(lam+100.)) / 2.
+         continuum = (sp0.sample(lam-10.) + sp0.sample(lam+10.)) / 2.
          EW = flux / continuum
          print "Equiv. width at %.1f A is %.2f A." % (lam, EW)
    if continuum:

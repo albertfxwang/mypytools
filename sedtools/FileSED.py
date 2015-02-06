@@ -170,11 +170,15 @@ class GalaxySEDFactory(object):
    def redshift(self, z, igmroutine=igmtrans.meiksin):
       """
       Redshift a model SED, but include the effects of IGM opacity.
+      15/02/02: Not sure if this is still the right way to do it... perhaps I 
+      should multiply the spectrum by the IGM attenuation curve (in the rest-
+      frame) and use the pysynphot redshift method.
       """
       # spec: input spectrum in luminosity/lambda in REST-FRAME
       # any dust extinction should be applied outside this function
       # z: redshift
       # Initialize the IGM routine
+      self.reset()
       if igmroutine:
          getigm = igmroutine()
       igm = getigm(z)   # apply IGM opacity in the REST-FRAME
