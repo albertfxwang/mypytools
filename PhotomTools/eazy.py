@@ -137,6 +137,15 @@ class EAZY(object):
       ebmv = self.phys.ebmv[MOD_BEST-1]
       return temp, zpeak, mass_best, log_age_best, sfr_best, tau, ebmv, MOD_BEST
 
+   def read_Pz(self, objid):
+      pz = sextractor("OUTPUT/%s.pz" % str(objid))
+      pz._2 = pz._2 - pz._2.min()
+      print pz._2.min(), pz._2.max()
+      prob = np.exp(-0.5 * pz._2)
+      probIntegrated = cumtrapz(prob, x=pz._1)[-1]
+      prob = prob / probIntegrated
+      return pz._1, prob
+
 class PlotEAZY(EAZY):
    def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4], with_specz=False):
       EAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, with_specz=with_specz)
@@ -149,17 +158,11 @@ class PlotEAZY(EAZY):
 
    def plot_Pz(self, objid, ax=None, savefig=True, mode='a', specz=-1, **plot_kwargs):
       assert objid in self.objid, "Object ID %s does not exist in catalog." % str(objid)
-      pz = sextractor("OUTPUT/%s.pz" % str(objid))
       if ax == None:
          fig = plt.figure()
          ax = fig.add_subplot(111)
-      pz._2 = pz._2 - pz._2.min()
-      print pz._2.min(), pz._2.max()
-      prob = np.exp(-0.5 * pz._2)
-      print prob.min(), prob.max()
-      probIntegrated = cumtrapz(prob, x=pz._1)[-1]
-      prob = prob / probIntegrated
-      ax.plot(pz._1, prob, **plot_kwargs)
+      zarray, prob = self.read_Pz(objid)
+      ax.plot(zarray, prob, **plot_kwargs)
       if specz > 0:
          ax.plot([specz, specz], [0., ax.get_ylim()[1]], lw=2, ls='--', 
                  c='navy', label=r'$z_{\mathrm{spec}}=%.3f$' % specz)
@@ -186,7 +189,7 @@ class PlotEAZY(EAZY):
          ax = fig.add_subplot(111)
       for x in objids:
          ax, z_peak = self.plot_Pz(x, ax=ax, savefig=False, mode=mode, **plot_kwargs)
-         ax.lines[-1].set_label('%s [z_peak = %.2f]' % (x, z_peak))
+         ax.lines[-1].set_label(r'%s [$z_{\mathrm{peak}} = %.2f$]' % (x, z_peak))
       ax.set_title("")
       ax.legend()
       return ax
@@ -342,6 +345,7 @@ class PlotEAZY(EAZY):
          nrows = n_plots / ncols + 1
       print "nrows, ncols:", nrows, ncols
       axes = []
+      zp_all = []
       # Plot individual SED fits
       for i in range(len(objids)):
          ax = fig.add_subplot(nrows, ncols, i+1)
@@ -350,6 +354,7 @@ class PlotEAZY(EAZY):
          ax = self.plot_photom(objids[i], ax=ax)
          ax, zp, props = self.plot_SED(objids[i], ax=ax, mode=mode,
                                        plot_kwargs=plt_kwargs_def)
+         zp_all.append(zp)
          ax.text(0.1, 0.9, objids[i], transform=ax.transAxes, ha='left', 
                  va='top', bbox=dict(boxstyle='round',facecolor='none'),
                  size='x-large')
@@ -359,6 +364,9 @@ class PlotEAZY(EAZY):
       ax = fig.add_subplot(nrows, ncols, i+2)
       ax = self.plot_multiple_Pz(objids, ax=ax, mode=mode, lw=2)
       ax.legend(loc=legend_loc, fontsize='large')
+      zmin = np.maximum(0., np.min(zp_all) - 2.)
+      zmax = np.minimum(12., np.max(zp_all)+2)
+      ax.set_xlim(zmin, zmax)
       axes.append(ax)
       return axes
 
@@ -939,6 +947,11 @@ def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False, mu=1.0
          print "%s: %f" % (x, bestprops[x] / mu)
          scale = 1.0
          x0 = bestprops[x] / mu
+      else:
+         d = distributions.Distribution1D(getattr(mc, x)[filt])
+         print "%s: %f" % (x, bestprops[x])
+         scale = 1.0
+         x0 = bestprops[x]
       limits = d.conf_interval(xgrid=100, p=p, x0=x0, print_it=True,
                                scale=scale)
       confint[x] = limits
