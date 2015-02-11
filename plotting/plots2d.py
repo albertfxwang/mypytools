@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# A TEMPLATE FOR MAKING A SCATTER PLOT WITH HISTOGRAMS ATTACHED TO EACH AXIS
+
 import numpy as np
 import matplotlib.pyplot as plt
 
