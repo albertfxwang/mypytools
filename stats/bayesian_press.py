@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from numpy import *
-from pygoods import *
 import scipy
 from scipy import optimize, integrate, interpolate
 
@@ -76,7 +75,7 @@ class BayesianPz(object):
    # assuming that each individual photo-z code returns a best photo-z with
    # a Gaussian error sigma...
    def __init__(self, data, zarray, sigma=None, pfloor=0.7, alpha=2.1):
-      self.data = array(data)    
+      self.data = array(data) 
       # self.data could be an array of N photo-z estimates, or an N by Nz
       # array with each row being the individual P(z) estimate; Nz is the 
       # number of redshift steps in P(z).
