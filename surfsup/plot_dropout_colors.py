@@ -185,7 +185,7 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
       ax.scatter(color2_all, color1_all, color=color, s=size, marker=marker)
       return ax
 
-   def plot_candidates(self, ax, c, objids, ms_show=14, objnames=[], magform='iso', markers=[], ncol_legend=1,objnames2show=[], marker_noshow='s', ms_noshow=8, color_noshow='black', **ebar_kwargs):
+   def plot_candidates(self, ax, c, objids, ms_show=14, objnames=[], magform='iso', markers=[], ncol_legend=1,objnames2show=[], marker_noshow='s', label_noshow="", ms_noshow=8, color_noshow='black', **ebar_kwargs):
       # Re-start iterating markers... so markers are consistent for the same 
       # objects
       if len(markers):
@@ -196,6 +196,7 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
       colors_iter = itertools.cycle(colors_def)
       if not len(objnames):
          objnames = map(lambda x: str(x), objids)
+      _label_noshow = False
       for i in range(len(objnames)):
          objLabel = ""
          marker = marker_noshow
@@ -210,6 +211,9 @@ class LBGPlotFactory(plot_colors.LBGColorPlotFactory):
             ms = ms_show
             mew = 2
             ebar_kwargs['elinewidth'] = 2
+         elif _label_noshow == False:
+            objLabel = label_noshow
+            _label_noshow = True
          ax = self.plot_galaxy(ax, c, objids[i], magform=magform, 
                                label=objLabel, ms=ms, mew=mew,
                                color=color, 

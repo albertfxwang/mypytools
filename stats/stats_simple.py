@@ -2,6 +2,8 @@
 
 import numpy as np
 import distributions
+from scipy import stats
+from scipy.stats import mstats
 
 """
 Some simple statistical functions.
@@ -33,3 +35,19 @@ def MonteCarlo_dist(values, error):
       error = np.ones(len(values), 'float') * error
    newValues = np.random.normal(values, error)
    return newValues
+
+def confidence_interval(data, bestValue, p=0.68, scale=1, verbose=True):
+   """
+   Given an array of data and a best value, calculate the empirical confidence
+   interval around bestValue that bracket a probability p.
+   """
+   p0 = (1. - p) / 2.
+   p1 = 1. - p0
+   x0, x1 = mstats.mquantiles(data, prob=[p0, p1])
+   if not (bestValue > x0) and (bestValue < x1):
+      print "Warning: bestValue is not within the confidence interval! Do something about it."
+   interval = np.array([bestValue - x0, x1 - bestValue]) * scale
+   bestValue = bestValue * scale
+   if verbose:
+      print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (bestValue, interval[1], interval[0])
+   return interval

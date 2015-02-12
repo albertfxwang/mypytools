@@ -4,6 +4,9 @@ import numpy as np
 import scipy
 from scipy import stats
 
+## 2015/02/07: this is all made obsolete by stats_simple.py, mainly the 
+## confidence interval method!!
+
 class Distribution1D(stats.rv_discrete):
    """
    Given a 1-D list (array) of values, estimate the PDF with Gaussian KDE and 
@@ -65,7 +68,7 @@ class Distribution1D(stats.rv_discrete):
       cdf = self.CDF(xgrid)
       # print xgrid
       # cdf = cdf / cdf.max()  # normalize max(CDF) to 1
-      if (cdf[0] > pHigh) or (cdf[1] < pLow):
+      if (cdf[0] > pHigh) or (cdf[-1] < pLow):
          # The distribution is strongly non-Gaussian, with most of the 
          # probabilities piled up at the low end... will quote the maximum
          # value instead
@@ -77,7 +80,6 @@ class Distribution1D(stats.rv_discrete):
          return xgrid[0], xgrid[-1]
       xinterval = np.sort(xgrid[(cdf >= pLow) & (cdf <= pHigh)])
       xinterval = scale * xinterval
-      # print len(xinterval)
       if x0 != None:
          x0 = scale * x0
          if (x0 < xinterval[0]) or (x0 > xinterval[-1]):
