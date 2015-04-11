@@ -20,11 +20,11 @@ class UVSlope(object):
    as is usually used for approximating the starburst rest-frame UV continuum.
    """
    def __init__(self, refwave, beta, redshift, A=1.0, verbose=False):
-      rspec = S.PowerLaw(refwave, beta, waveunits='angstrom', 
+      self.rspec = S.PowerLaw(refwave, beta, waveunits='angstrom', 
                               fluxunits='flam')
-      self.factory = FileSED.GalaxySEDFactory(spec=rspec)
+      # self.factory = FileSED.GalaxySEDFactory(spec=rspec)
       # Redshift the spectrum & add IGM attenuation
-      self.rspec = self.factory.redshift(redshift)  # the reference spectrum
+      # self.rspec = self.factory.redshift(redshift)  # the reference spectrum
       mag = S.Observation(self.rspec, filters['f160w']).effstim('abmag')
       # normalize reference spectrum to 25.0 mag in F160W to minimize 
       # round-off errors later in fitting
@@ -39,7 +39,7 @@ class UVSlope(object):
    def renorm(self, factor):
       self.spec = self.rspec * factor
 
-   def chi2(self, bands, mags, magerrs, fit='mag'):
+   def chi2(self, bands, mags, magerrs, fit='flux'):
       """
       Calculate the total chi-square for self.spec given a list of bands 
       (pysynphot SpectralElement instances) and magnitudes and errors.
@@ -58,15 +58,16 @@ class UVSlope(object):
          sn = [pu.magerr2sn(m) for m in magerrs]
          fluxerrs = fluxes / sn  # to get flux errors from S/N
          # Now sample the reference spectrum at the central wavelengths
-         self.rspec.convert('muJy')  # convert to milli-Jansky 
-         flux_spec = [self.rspec.sample(b.pivot()) for b in bands]
+         self.rspec.convert('muJy')  # convert to micro-Jansky 
+         # flux_spec = [self.rspec.sample(b.pivot()) for b in bands]
+         flux_spec = [S.Observation(self.rspec, b).effstim('muJy') for b in bands]
          flux_spec = np.array(flux_spec)  # convert to micro-Jansky
          chi2 = (((flux_spec - fluxes) / fluxerrs) ** 2).sum()
          self.rspec.convert('flam')  # go back to flam
       return chi2
 
 
-def fit_UVslope(filternames, mags, magerrs, z, beta0=-2.0, normband=filters['f850lp'], normmag=25.0, verbose=False, fit='mag'):
+def fit_UVslope(filternames, mags, magerrs, z, beta0=-2.0, normband=filters['f850lp'], normmag=25.0, verbose=False, fit='flux'):
    """
    Fit a UV slope (beta) to the observed rest-frame UV magnitudes.
    bands - a list of strings as filter names (e.g., f160w)
@@ -94,6 +95,9 @@ def show_uvslope_fit(filternames, mags, magerrs, z, beta, A):
    rspec = x.rspec * (1. / 1.e-29)  # in micro-Jansky
    plt.plot(rspec.wave, 23.9-2.5*np.log10(rspec.flux), lw=1.5, 
             label=r'$\beta=%.2f$' % beta)
+   plt.scatter(waves, [S.Observation(x.rspec,b).effstim('abmag') for b in bands],
+               marker='s', facecolor='none', edgecolor='red', linewidths=2,
+               s=30**2)
    plt.xscale('log')
    plt.xlim(0.9*waves.min(), 1.1*waves.max())
    plt.ylim(np.min(mags)-1.0, np.max(mags)+1.0)
