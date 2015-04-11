@@ -88,7 +88,8 @@ class FakeGalaxies(object):
 
    def spawn_galaxies(self):
       """
-      Generate fake galaxies.
+      Generate a list of fake galaxy properties. It does NOT actually insert
+      fake galaxies into the images.
       """
       self.mag = {}
       self.othercols = {}
@@ -172,7 +173,13 @@ class FakeGalaxies(object):
       Gets a random axial ratio from a distribution of inclinations & true
       axial ratios
       """
-      sini = np.random.rand();
+      # Note that here i is defined as the angle between the normal of the 
+      # disk plane and the direction perpendicular to the line of sight!
+      # One can also use the "usual" definition of inclination angle, defined 
+      # as between the normal of disk plane and the line of sight (so that a
+      # face-on galaxy will have i = 0), then in this case sini and cosi will 
+      # be flipped.
+      sini = np.random.rand()
       # Calculate intrinsic axis ratio q
       condlist = [self.gtype==devauc, self.gtype==disk]
       choicelist = [axratio_devauc(self.ngal), axratio_disk(self.ngal)]
@@ -191,7 +198,6 @@ class FakeGalaxies(object):
    def makegals_multiband(self, flagimage, igalfile="", bands=None):
       """Makes the galaxy list files """
       
-      print "in makegals"      
       # Write the galaxy parameters out to files
       if bands==None:
          bands = self.bands
@@ -227,7 +233,6 @@ class FakeGalaxies(object):
                   outstring = '%s ' % self.othercols[k][i]
             igfile.write("%s\n" % outstring)
          igfile.close()
-      print "finish makegals"
 
 class fake_galaxies(FakeGalaxies):
    pass
