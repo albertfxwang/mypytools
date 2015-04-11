@@ -55,7 +55,8 @@ def run_sexsim(parfile):
       print "Iteration %d:" % sim.n
       sim.insert_fake_sources()
       sim.run_sextractor()
-      sim.cleanup()
+      if not sim.save:
+         sim.cleanup()
       sim.n = sim.n + 1
 
 if __name__ == '__main__':
