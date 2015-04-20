@@ -79,10 +79,19 @@ class FITSImage(object):
       self.data = step2
       self.scale = self.scale * blksize
       # Also need to update WCS keywords
-      self.header['crpix1'] = self.header['crpix1'] / float(blksize)
-      self.header['crpix2'] = self.header['crpix2'] / float(blksize)
+      # NOTE: CRPIX does not transform by dividing by the scale factor!!
+      # The following two lines are WRONG.
+      # Note that pixel coordinates are at the CENTERS of pixels, and the 
+      # centers move as pixel scale changes.
+      # self.header['crpix1'] = self.header['crpix1'] / float(blksize)
+      # self.header['crpix2'] = self.header['crpix2'] / float(blksize)
+      crpix1 = np.array(self.header['crpix1'])
+      crpix1 = (crpix1 - np.array([0.5,0.5]))/float(blksize)+np.array([0.5,0.5])
+      crpix2 = np.array(self.header['crpix2'])
+      crpix2 = (crpix2 - np.array([0.5,0.5]))/float(blksize)+np.array([0.5,0.5])
       self.header['cd1_1'] = self.header['cd1_1'] * blksize
       self.header['cd2_2'] = self.header['cd2_2'] * blksize
+      print self.header['crpix1'], self.header['crpix2']
       if self.header.has_key('cd1_2'):
          self.header['cd1_2'] = self.header['cd1_2'] * blksize
       if self.header.has_key('cd2_1'):

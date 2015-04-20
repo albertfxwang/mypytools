@@ -1,13 +1,17 @@
 ## Tools for processing/displaying EAZY results
 import numpy as np
 import os, subprocess
-from pygoods import Ftable, sextractor
+try:
+   from pygoods import Ftable, sextractor
+except:
+   from fitstable import Ftable
+   from sextutils import sextractor
 from sedtools.bands import filters
 import matplotlib.pyplot as plt
 from scipy.integrate import cumtrapz
-from PhotomTools import photomUtils as pu
+import photomUtils as pu
 import pysynphot as S
-import cosmoclass
+from astropy import cosmology
 from stats import distributions
 
 eazy_path = '/Users/khuang/bin/eazy'
@@ -16,9 +20,15 @@ downarrow = [(-2,0),(2,0),(0,0),(0,-4),(-2,-2),(0,-4),(2,-2),(0,-4),(0,0)]
 pc_cm = 3.0857e18   # parsec in cm
 area_10pc = 4 * np.pi * (10*pc_cm)**2  # in cm^2
 L_solar = 3.826e33  # in erg/s
+# define where the physical parameter file for BC03 models are
 bc03_phys = '/Users/khuang/eazy-1.00/templates/BC03/bc03_m42_tau.phys'
 bc03_phys_dustfree = '/Users/khuang/eazy-1.00/templates/BC03/bc03_m42_tau_dustfree.phys'
-cosmo = cosmoclass.cosmoclass(70., 0.3, 0.7)  # default cosmology parameters
+cosmo = cosmology.FlatLambdaCDM(H0=70.,Om0=0.3)
+
+# Customize line styles
+dashed = [9, 3, 9, 3]
+dashdot = [3, 3, 8, 3]
+dotted = [3, 3]
 
 def scinote2exp(scinote, nprec=3):
    # convert scientific notation in the format of 1.0e10 into (1.0, 10)
@@ -93,8 +103,9 @@ class EAZY(object):
       else:
          zlo = self.l95
          zhi = self.u95
-      error_lo = zbest - zlo
-      error_hi = zhi - zbest
+      # Force the error bar to be at least zero
+      error_lo = np.maximum(0, zbest - zlo)
+      error_hi = np.maximum(0, zhi - zbest)
       return [zbest, error_lo, error_hi]
 
    def read_SED(self, objid, mode='1'):
@@ -121,7 +132,8 @@ class EAZY(object):
          zpeak = self.z_a[self.id==objid][0]
       else:
          zpeak = self.z_2[self.id==objid][0]
-      LUMDIST = cosmo.lumdist(zpeak, unit='Mpc') * 1e6  # in parsec
+      # LUMDIST = cosmo.lumdist(zpeak, unit='Mpc') * 1e6  # in parsec
+      LUMDIST = cosmo.luminosity_distance(zpeak).value * 1.e6
       FACTOR = (1./(1.+zpeak)) * (LUMDIST / 10.)**2  
       # a factor in front of template flux ratios
       # Use the average at rest-frame 2000 A and 6000 A for the normalization factor
@@ -190,6 +202,7 @@ class PlotEAZY(EAZY):
       for x in objids:
          ax, z_peak = self.plot_Pz(x, ax=ax, savefig=False, mode=mode, **plot_kwargs)
          ax.lines[-1].set_label(r'%s [$z_{\mathrm{peak}} = %.2f$]' % (x, z_peak))
+         ax.set_xlim(0., np.minimum(12, 2*z_peak))
       ax.set_title("")
       ax.legend()
       return ax
@@ -388,6 +401,12 @@ class PlotEAZY(EAZY):
       ax.set_ylim(0, zmax)
       ax.set_xlabel('spec. redshift')
       ax.set_ylabel('phot. redshift')
+      # Also calculate how many of the objects have photo-z that agree with 
+      # spec-z
+      agree = (specz - (zbest - error_lo)>0) & ((zbest + error_hi - specz)>0)
+      print "%d out of %d objects with spec-z within the photo-z error bars." % (np.sum(agree), len(agree))
+      for i in range(len(specz)):
+         print specz[i], zbest[i]-error_lo[i], zbest[i]+error_hi[i]
       return ax
 
 
@@ -395,24 +414,25 @@ class PlotEAZY_wspecz(PlotEAZY):
    def __init__(self, tempfluxunit='fnu', physfile=bc03_phys, wavelim=[3000.,8e4]):
       PlotEAZY.__init__(self, tempfluxunit=tempfluxunit, physfile=physfile, 
                         wavelim=wavelim, with_specz=True)
-   def plot_all(self, objid, xmax=None, ax=None, savefig=False, textbox=True, plot_kwargs={'color':'black'}, mode='1'):
-      fig = plt.figure(figsize=(10,8))
-      ax1 = fig.add_subplot(111)
-      ax1.set_yscale('log')
-      ax1.set_xscale('log')
-      ax1 = self.plot_photom(objid, ax=ax1)
-      ax1, zp, props = self.plot_SED(objid, ax=ax1, mode=mode, plot_kwargs=plot_kwargs)
+   def plot_all(self, objid, ax=None, xmax=None, savefig=False, textbox=True, plot_kwargs={'color':'black'}, mode='1'):
+      if ax == None:
+         fig = plt.figure(figsize=(10,8))
+         ax = fig.add_subplot(111)
+      ax.set_yscale('log')
+      ax.set_xscale('log')
+      ax = self.plot_photom(objid, ax=ax)
+      ax, zp, props = self.plot_SED(objid, ax=ax, mode=mode, plot_kwargs=plot_kwargs)
       if mode == '1':
          chi2 = self.chi_1
       elif mode == 'a':
          chi2 = self.chi_a
       else:
          chi2 = self.chi_2
-      ax1.set_title('Object %s [z_spec = %.2f]' % (objid, zp))
+      ax.set_title('Object %s [z_spec = %.2f]' % (objid, zp))
       if textbox:
          mass, age, sfr, tau, ebmv = props
          masstxt = scinote2exp('%e' % mass)
-         sedtext = "With IRAC:\n"
+         sedtext = "HST+IRAC:\n"
          sedtext = sedtext + "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % masstxt
          sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv
          sedtext = sedtext + "$\mathrm{SFR} = %.2f/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
@@ -423,15 +443,15 @@ class PlotEAZY_wspecz(PlotEAZY):
          sedtext = sedtext + "$\\tau = %.1f\ \mathrm{[Gyrs]}$" % tau
          chi2_nu = chi2[self.id==objid][0] / self.nfilt[self.id==objid][0]
          sedtext = sedtext + "\n$\chi^2 = %.2f$" % (chi2_nu)
-         ax1.text(0.95, 0.05, sedtext, size='large', ha='right', va='bottom',
-                 transform=ax1.transAxes, multialignment='left',
+         ax.text(0.95, 0.05, sedtext, size='large', ha='right', va='bottom',
+                 transform=ax.transAxes, multialignment='left',
                  bbox=dict(boxstyle='round,pad=0.3',facecolor='LightPink'))
       plt.draw()
       if savefig:
          plt.savefig("%s_SED_Pz.png" % str(objid))
-      return ax1
+      return ax
 
-   def plot_all_multifits(self, objids, objname="", savefig=False, plot_kwargs={'lw':2}, mode='1'):
+   def plot_all_multifits(self, objids, objname="", ax=None, savefig=False, plot_kwargs={'lw':2}, mode='1'):
       """
       Plot multiple fits of the same object. Each fit is represented by a 
       different objid in the EAZY catalog, but they have the same photometry.
@@ -439,8 +459,9 @@ class PlotEAZY_wspecz(PlotEAZY):
       the photometry from the first objid. The user should make sure that
       all objids are from the same photometry.
       """
-      fig = plt.figure(figsize=(10,8))
-      ax = fig.add_subplot(111)
+      if ax == None:
+         fig = plt.figure(figsize=(10,8))
+         ax = fig.add_subplot(111)
       ax.set_yscale('log')
       ax.set_xscale('log')
       if mode == '1':
@@ -450,18 +471,20 @@ class PlotEAZY_wspecz(PlotEAZY):
       else:
          chi2 = self.chi_2
       ax = self.plot_photom(objids[0], ax=ax)
+      sedlines = []
       for x in objids:
          ax, zp, props = self.plot_SED(x, ax=ax, mode=mode,
                                        plot_kwargs=plot_kwargs)
-         chi2_nu = chi2[self.id==x][0] / self.nfilt[self.id==x][0]
-         ax.lines[-1].set_label(r"$z=%.2f$; $\chi^2_{\nu}=%.2f$" % (zp, chi2_nu))
+         chi2_nu = chi2[self.id==x][0] / (self.nfilt[self.id==x][0]-1)
+         ax.lines[-1].set_label(r"$z_{\mathrm{spec}}=%.2f$; $\chi^2_{\nu}=%.2f$" % (zp, chi2_nu))
          print ax.lines[-1].get_label()
          ax.set_title("")
+         sedlines.append(ax.lines[-1])
       ax.legend(loc=2, fontsize='x-large')
       if objname:
          ax.set_title(objname, size='xx-large')
       plt.draw()
-      return ax
+      return ax, sedlines
 
 
 def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, legend_loc=2, mode='a'):
@@ -504,10 +527,11 @@ def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, lege
    print "Plotting HST_ONLY:"
    ax, z_peak, props_hst = p1.plot_SED(objid, ax=ax, savefig=False, mode=mode,
                     plot_kwargs={'color':colors[0],'label':'HST only' % zp_1,'lw':1.0, 'ls':'--'}) 
+   ax.lines[-1].set_dashes(dashed)
    os.chdir(curdir+'/with_irac')
    print "Plotting WITH_IRAC:"
    ax, z_peak, props_irac = p2.plot_SED(objid, ax=ax, savefig=False, mode=mode,
-                    plot_kwargs={'color':colors[1],'label':'With IRAC' % zp_2,'lw':2.0})
+                    plot_kwargs={'color':colors[1],'label':'HST+IRAC' % zp_2,'lw':2.0})
    ax.set_xlim(xmin=p2.lambda_min * 0.8, xmax=p2.lambda_max * 1.5)
    ax.legend(loc=legend_loc) 
    os.chdir(curdir)
@@ -515,7 +539,7 @@ def plot_HST_IRAC_SED(objid, ax=None, colors=['blue', 'red'], savefig=True, lege
       plt.savefig('%s_SED.png' % str(objid))
    return ax, z_peak, props_hst, props_irac
 
-def plot_HST_IRAC_Pz(objid, ax=None, colors=['blue', 'maroon'], savefig=True, legend_loc=1, mode='a'):
+def plot_HST_IRAC_Pz(objid, ax=None, colors=['blue', 'Crimson'], savefig=True, legend_loc=1, mode='a'):
    curdir = os.getcwd()
    print "Plotting P(z) for object %s..." % str(objid)
    os.chdir('hst_only')
@@ -550,7 +574,7 @@ def plot_HST_IRAC_Pz(objid, ax=None, colors=['blue', 'maroon'], savefig=True, le
                    mode=mode) 
    os.chdir(curdir+'/with_irac')
    ax, z_peak = p2.plot_Pz(objid, ax=ax, savefig=False, color=colors[1],
-                   label='With IRAC (z_peak=%.3f)' % zp_2, lw=3.0,
+                   label='HST+IRAC (z_peak=%.3f)' % zp_2, lw=3.0,
                    mode=mode)
    ax.legend(loc=legend_loc) 
    os.chdir(curdir)
@@ -558,7 +582,7 @@ def plot_HST_IRAC_Pz(objid, ax=None, colors=['blue', 'maroon'], savefig=True, le
       plt.savefig('%s_Pz.png' % str(objid))
    return ax, z_peak
 
-def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc=2, mode='1', textbox=True):
+def plot_HST_IRAC_all(objid, colors=['blue','Crimson'], outputfile="", legend_loc=2, mode='1', textbox=True):
    # Plot both P(z) and SED for the object with ID objid
    fig = plt.figure(figsize=(10,12))
    ax1 = fig.add_subplot(2, 1, 1)
@@ -572,7 +596,7 @@ def plot_HST_IRAC_all(objid, colors=['blue','maroon'], outputfile="", legend_loc
    if textbox:
       mass, age, sfr, tau, ebmv = props_irac
       masstxt = scinote2exp('%e' % mass)
-      sedtext = "With IRAC:\n"
+      sedtext = "HST+IRAC:\n"
       sedtext = sedtext + "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % masstxt
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv
       sedtext = sedtext + "$\mathrm{SFR} = %.2f/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
@@ -611,7 +635,7 @@ def plot_dustfree(objid, outputfile="", mode="1", textbox=True):
       tau = props_df[5]
       ebmv = props_df[6]
       masstxt = scinote2exp('%e' % mass)
-      sedtext = "With IRAC:\n"
+      sedtext = "HST+IRAC:\n"
       sedtext = sedtext + "$M_{\mathrm{star}} = %s/\\mu\ \mathrm{[M_{\odot}]}$\n" % masstxt
       sedtext = sedtext + "$E(B-V) = %.2f$\n" % ebmv
       sedtext = sedtext + "$\mathrm{SFR} = %.2f/\\mu\ \mathrm{[M_{\odot}/yr]}$\n" % sfr
@@ -629,7 +653,7 @@ def plot_dustfree(objid, outputfile="", mode="1", textbox=True):
       fig.savefig(outputfile)
    return fig
 
-def plot_HST_IRAC_all_1panel(objid, ax=None, colors=['blue','maroon'], outputfile="", legend_loc=2, SEDtype='default', mode='1', textbox=True, title=False, xlow2=0.65, xsize2=0.3, ylow2=0.12, ysize2=0.3, magmin=30, magmax=23, legendfontsize='x-large', pztickfontsize='large', pztextfontsize='large',qsodir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/QSO',stardir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/STAR'):
+def plot_HST_IRAC_all_1panel(objid, ax=None, colors=['blue','Crimson'], outputfile="", legend_loc=2, SEDtype='default', mode='1', textbox=True, title=False, xlow2=0.65, xsize2=0.3, ylow2=0.12, ysize2=0.3, magmin=30, magmax=23, legendfontsize='x-large', pztickfontsize='large', pztextfontsize='large',qsodir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/QSO',stardir='/Users/khuang/Dropbox/Research/surfsup_dropbox/HIGHZ_ALL/eazy/STAR'):
    curdir = os.getcwd()
    # Plot both P(z) and SED for the object with ID objid
    if ax == None:
@@ -644,18 +668,22 @@ def plot_HST_IRAC_all_1panel(objid, ax=None, colors=['blue','maroon'], outputfil
    ax1, z_peak, props_hst, props_irac = plot_HST_IRAC_SED(objid, ax=ax1, 
          colors=colors, savefig=False, legend_loc=legend_loc, mode=mode)
    print "z_peak = %.2f" % z_peak
-   # Plot best-fit QSO spectrum
-   print "\nPlotting QSO spectrum...\n"
-   os.chdir(qsodir)
-   plt_qso = PlotEAZY()
-   out_qso = plt_qso.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1, 
-      plot_kwargs=dict(color='SeaGreen', ls='--', lw=1, label='QSO'))
-   # Plot best-fit STAR spectrum
-   print "\nPlotting STAR spectrum...\n"
-   os.chdir(stardir)
-   plt_star = PlotEAZY(with_specz=True)
-   out_star = plt_star.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1,
-      plot_kwargs=dict(color='0.1', ls=':', lw=1, label='STAR'))
+   if len(qsodir):
+      # Plot best-fit QSO spectrum
+      print "\nPlotting QSO spectrum...\n"
+      os.chdir(qsodir)
+      plt_qso = PlotEAZY()
+      out_qso = plt_qso.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1, 
+         plot_kwargs=dict(color='SeaGreen', ls='--', lw=1, label='QSO'))
+      out_qso[0].lines[-1].set_dashes(dashed)
+   if len(stardir):
+      # Plot best-fit STAR spectrum
+      print "\nPlotting STAR spectrum...\n"
+      os.chdir(stardir)
+      plt_star = PlotEAZY(with_specz=True)
+      out_star = plt_star.plot_SED(objid, xmax=ax1.get_xlim()[1], ax=ax1,
+         plot_kwargs=dict(color='0.1', ls=':', lw=1, label='STAR'))
+      out_star[0].lines[-1].set_dashes(dotted)
    # re-set HST only line width
    for j in range(len(ax1.lines)):
       if ax1.lines[j].get_label() == 'HST only':
@@ -900,6 +928,7 @@ def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False, mu=1.0
    """
    Read the Monte Carlo simulation results and calculate confidence intervals.
    """
+   print "Make sure all the Monte Carlo results are in the directory MonteCarlo"
    mc = sextractor('MonteCarlo/' + objname + '.mc')
    bf = EAZY(with_specz=with_specz)
    bf.read_output()
@@ -963,6 +992,7 @@ def read_MCresults(objname, p=0.68, ebmv=-1, xgrid=200, with_specz=False, mu=1.0
    scale = 1.0
    limits = d.conf_interval(xgrid=xgrid, p=p, x0=x0, print_it=True,
                             scale=scale)
+   confint['ssfr'] = limits
    print ""
    return confint
 

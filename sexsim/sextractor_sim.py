@@ -489,4 +489,36 @@ def check_all(allruns, checked=None):
 class sextractor_sim(SExtractorSim):
    pass
 
-   
+def calc_maglim(catalog, band, root, fluxerr_factor, apercol='iso', sigma=3, dsigma=0.2, func='median'):
+   """
+   Calculate the N-sigma magnitude limit from the merged simulation catalog.
+   """
+   c = sextractor(catalog)
+   fluxcol = '%s_flux_%s' % (band.lower(), apercol.lower())
+   fluxerrcol = '%s_fluxerr_%s' % (band.lower(), apercol.lower())
+   flux = getattr(c, fluxcol)
+   fluxerr = fluxerr_factor * getattr(c, fluxerrcol)
+   sn = flux / fluxerr
+   # choose only within a narrow range of S/N
+   sn_calc = (sn >= (sigma-dsigma)) & (sn <= (sigma+dsigma))
+   # ensure that the fake source is detected
+   x_image = getattr(c, '%s_x_image' % band.lower())
+   y_image = getattr(c, '%s_y_image' % band.lower())
+   detect = (x_image > 0) & (y_image > 0)
+   calc = np.logical_and(sn_calc, detect)
+   assert np.sum(calc) >= 20, "Fewer than 20 (only %d) objects in the calculation..." % np.sum(calc)
+   flux_sn = flux[calc]
+   # Now read the zeropoint from the simulation parameter file
+   zp = -1.0
+   par = yaml.load(open('%s.sim' % root))
+   for i in range(len(par['BANDS'])):
+      if par['BANDS'][i] == band.lower():
+         zp = par['MAGZPT'][i]
+   assert zp > 0, "Unable to read zeropoint from the parameter file..."
+   if func == 'median':
+      maglim_sn = np.median(zp - 2.5 * np.log10(flux_sn))
+   else:
+      maglim_sn = np.average(zp - 2.5 * np.log10(flux_sn))
+   return maglim_sn
+
+      

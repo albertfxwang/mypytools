@@ -51,3 +51,17 @@ def confidence_interval(data, bestValue, p=0.68, scale=1, verbose=True):
    if verbose:
       print "Confidence interval: %.4f (+ %.4f) (- %.4f)" % (bestValue, interval[1], interval[0])
    return interval
+
+def MonteCarlo_average(distributions, bestValue, nsamp=1000, **cf_kwargs):
+   """
+   Get the confidence interval of the average from a number of MC distributions.
+   distributions should be a list with nobj distributions.
+   """
+   nobj = len(distributions)
+   output = np.zeros(nsamp)
+   for i in range(nsamp):
+      x = [np.random.choice(distributions[j]) for j in range(nobj)]
+      output[i] = np.average(x)
+   # Now get the confidence intervals
+   cf = confidence_interval(output, bestValue, **cf_kwargs)
+   return cf, output

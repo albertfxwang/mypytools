@@ -6,6 +6,7 @@ import pysynphot as S
 from scipy import integrate, interpolate
 from stats import gauss
 from pygoods import sextractor
+import extinction
 
 L_solar = 3.826e33   # erg/s
 pc_cm = 3.0857e18  # cm
@@ -45,6 +46,13 @@ nebular_ratios = {'lambda':[1335., 1663., 1909., 2141., 2326., 2798., 3727.,
                            0.000, 0.108, 0.041, 0.017, 0.059, 0.175,
                            0.030, 0.188, 0.138, 0.023, 0.071, 0.027,
                            0.014, 0.176, 0.510, 0.000, 0.000, 
+                           0.000, 0.000],
+                  'Z1':    [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.489,
+                           0.295, 0.203, 0.270, 0.015, 0.005, 0.002,
+                           0.109, 0.036, 0.010, 1.097, 3.159, 0.003, 
+                           0.000, 0.096, 0.008, 0.009, 0.005, 0.015,
+                           0.026, 0.037, 0.029, 0.028, 0.027, 0.012,
+                           0.007, 0.067, 0.000, 0.000, 0.000,
                            0.000, 0.000]}
 
 # Now also implement nebular continuum emission, mostly from HI, HeII, HeI, 
@@ -92,7 +100,7 @@ def add_emission_line(spec, central_wave, flux, width=20., dw=1.0, return_ew=Fal
    wave = np.arange(w0, w1+dw, dw)  # the wavelength grid for the line
    # calculate the amplitude
    # amp = flux / (np.sqrt(2.*np.pi) * width)
-   line = flux * gauss.gauss(wave, central_wave, width, xstep=dw)
+   line = flux * gauss.gauss(wave, central_wave, width, 1.0, xstep=dw)
    line[0] = 0.; line[-1] = 0.
    new_wave = np.union1d(spec.wave, wave)  # already sorted
    spr = spec.resample(new_wave)
@@ -252,9 +260,12 @@ def add_nebular_lines(specfile, outputfile="", fluxunit='Lsolar', width=10., dw=
    sp = sp + sp_neb
    ## Now apply dust attenuation if desired (if ebmv > 0)
    if ebmv > 0:
-      dust_stellar = S.Extinction(ebmv, extlaw)  # default is Calzetti law
+      # dust_stellar = S.Extinction(ebmv, extlaw)  # default is Calzetti law
+      calzetti = extinction.Calzetti()
+      dust_stellar = calzetti(ebmv, sp=sp)
       ebmv_neb = ebmv / 0.44  # see Calzetti+2000, Equation (3)
-      dust_nebular = S.Extinction(ebmv_neb, extlaw)
+      # dust_nebular = S.Extinction(ebmv_neb, extlaw)
+      dust_nebular = calzetti(ebmv_neb, sp=sp_neb)
       sp_stellar = sp * dust_stellar
       sp_neb = sp_neb * dust_nebular
       sp = sp_stellar + sp_neb
@@ -343,6 +354,7 @@ def calc_phys_prop(specfile):
 def write_phys_prop(specfiles, physprop_file, physfile, tau_default=1.e9, Z=0.004):
    """
    To make a *.phys file for Le Phare.
+   physprop_file should be the *.4color file from BC03.
    """
    # Manual input tau (should be improved later!!)
    s2 = sextractor(physprop_file)

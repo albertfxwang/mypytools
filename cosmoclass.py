@@ -64,6 +64,10 @@ class cosmoclass():
       The function relating H0 and H(z): H(z) = H0 * E(z)
       E(z)
       """
+      try:
+         z = array(z)
+      except:
+         pass
       x = sqrt(self.omega_m*(1.+z)**3 + self.omega_k*(1.+z)**2 + self.omega_l)
       return x
 

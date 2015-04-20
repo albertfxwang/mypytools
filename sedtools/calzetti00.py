@@ -28,36 +28,36 @@ def computeTrans_C00():
    k = concatenate([k0,k1,k2,k3])
    return k
 
-# class Calzetti00(_ExtinctionLaw):
-#    citation = 'Calzetti et al. 2000 (ApJ, 533, 682)'
-#    name = 'CALZETTI00'
-#    def __init__(self, ebmv):
-#       """
-#       Calculate the dust attenuation following the Calzetti+2000 relation,
-#       parameterized by the E(B-V) of the stellar continuum. The relation in 
-#       E(B-V) between the stellar and nebular attenuation is roughly
-#       E(B-V)_stellar = (0.44 +/- 0.03) E(B-V)_neb
-#       as given in Calzetti+2000.
-#       """
-#       self._wavetable = _waveset.copy() * 10000.
-#       # self.A_lam = 0.4 * ebmv * computeTrans_C00()
-#       self.transparencytable = 10.**(-1 * self.A_lam)
+class Calzetti00(_ExtinctionLaw):
+   citation = 'Calzetti et al. 2000 (ApJ, 533, 682)'
+   name = 'CALZETTI00'
+   def __init__(self, ebmv):
+      """
+      Calculate the dust attenuation following the Calzetti+2000 relation,
+      parameterized by the E(B-V) of the stellar continuum. The relation in 
+      E(B-V) between the stellar and nebular attenuation is roughly
+      E(B-V)_stellar = (0.44 +/- 0.03) E(B-V)_neb
+      as given in Calzetti+2000.
+      """
+      self._wavetable = _waveset.copy() * 10000.
+      # self.A_lam = 0.4 * ebmv * computeTrans_C00()
+      self.transparencytable = 10.**(-1 * self.A_lam)
 
-class Extinction(spectrum.ArraySpectralElement):
-   """extinction = Extinction(extinction in magnitudes,
-   'gal1|smc|lmc reddening laws)"""
-   def __init__(self, extval):
-      ''' Extinction mimics as a spectral element.
-      '''
-      law = Calzetti00(extval)
-      #self._wavetable = law._wavetable
-      #self._throughputtable = law.transparencytable
-      self.extinction = S.ArrayBandpass(law._wavetable,law.transparencytable)
-      self.name=law.name
-      self.citation=law.citation
-      self.waveunits=units.Units('angstrom')
-      self.isAnalytic=False
-      self.warnings={}
-      self.extval = extval
-   #def __call__(self):
+# class Extinction(spectrum.ArraySpectralElement):
+#    """extinction = Extinction(extinction in magnitudes,
+#    'gal1|smc|lmc reddening laws)"""
+#    def __init__(self, extval):
+#       ''' Extinction mimics as a spectral element.
+#       '''
+#       law = Calzetti00(extval)
+#       #self._wavetable = law._wavetable
+#       #self._throughputtable = law.transparencytable
+#       self.extinction = S.ArrayBandpass(law._wavetable,law.transparencytable)
+#       self.name=law.name
+#       self.citation=law.citation
+#       self.waveunits=units.Units('angstrom')
+#       self.isAnalytic=False
+#       self.warnings={}
+#       self.extval = extval
+#    #def __call__(self):
       

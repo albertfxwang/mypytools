@@ -9,6 +9,7 @@ from pygoods import sextractor, angsep
 import matplotlib.pyplot as plt
 from stats import robust, gauss
 import copy
+import yaml
 
 class SkyRMSSim(sextractor_sim.SExtractorSim):
    """
@@ -236,7 +237,7 @@ def calc_local_scaling_factor(band, ra, dec, magzero, radius=20., root='skyrms',
    print "Scaling factor in %s from median(fluxerr) to sigma(flux_empty) is %.3f" % (band.upper(), factor)
    return factor
 
-def calc_scaling_factor(band, root='skyrms', apersize=0.4, apercol='iso', fit_sky=False):
+def calc_scaling_factor(band, root='skyrms', apercol='iso', fit_sky=False):
    # Use ISO aperture to calculate the scaling factor, because we know the 
    # number of pixels (isoarea_image) SExtractor uses to calculate flux errors
    sex_flux, sex_fluxerr = collect_fluxerr(band, root=root, apercol=apercol,
@@ -274,7 +275,28 @@ def calc_scaling_factor(band, root='skyrms', apersize=0.4, apercol='iso', fit_sk
    flux_stats = gauss.fitgauss(sex_flux[(sex_fluxerr>0)], clip=True, disp=0)
    fluxerr_stats = gauss.fitgauss(sex_fluxerr[(sex_fluxerr>0)], clip=True, disp=0)
    factor = flux_stats[1] / fluxerr_stats[0]
+   # print "flux_stats[1], fluxerr_stats[0]:", flux_stats[1], fluxerr_stats[0]
    print "Scaling factor in %s from median(fluxerr) to sigma(flux_empty) is %.3f" % (band.upper(), factor)
+   return flux_stats[1]  # this will be the 1-sigma flux limit
+
+def calc_maglim(band, root='skyrms', apercol='iso', sigma=1):
+   """
+   Calculate the magnitude limits from sky RMS simulations (fake source in 
+   detection band only, NOT in measurement bands). I calculate the N-sigma
+   magnitude limit (N given by the sigma argument) from the 'flux fluctuation'
+   of the measurement at empty regions.
+   """
+   fluxerr_1sig = calc_scaling_factor(band, root=root, apercol=apercol)
+   fluxlim_Nsig = sigma * fluxerr_1sig
+   par = yaml.load(open('%s.sim' % root))
+   zp = -1.0
+   for i in range(len(par['BANDS'])):
+      if par['BANDS'][i] == band.lower():
+         zp = par['MAGZPT'][i]
+   assert zp > 0, "Unable to read the zeropoint for %s!" % band
+   maglim_Nsig = zp - 2.5 * np.log10(fluxlim_Nsig)
+   print "%d-sigma magnitude limit in %s (%s aperture) is %.2f..." % (int(sigma), band, apercol.upper(), maglim_Nsig)
+   return maglim_Nsig
 
 
 if __name__ == '__main__':

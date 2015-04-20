@@ -4,9 +4,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import photomUtils as pu
 from scipy.integrate import cumtrapz
-from pygoods import sextractor
+try:
+   from pygoods import sextractor
+except:
+   from sextutils import sextractor
 import copy, os, sys, subprocess
-from stats import distributions as dist
+try:
+   from stats import distributions as dist 
+except:
+   import distributions as dist
+# I've found a much better way to derive confidence interval than using 
+# stats.distributions... I'll work on it later
 
 
 # a list of model tau's (for exponentially declining SFH)

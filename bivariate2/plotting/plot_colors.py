@@ -106,11 +106,12 @@ class LBGColorPlotFactory(object):
       ax.set_title(title)
       return ax
 
-   def plot_colorcrit(self, colorcrit, ax, fc='blue', alpha=0.2):
+   def plot_colorcrit(self, colorcrit, ax, fc='blue', alpha=0.2, **kwargs):
       xmin, xmax = ax.get_xlim()
       ymin, ymax = ax.get_ylim()
       colorcrit.plotcrit_fill(xmin, ymax, ax=ax, xmax_plot=xmax, 
-                              ymin_plot=ymin, fc=fc, alpha=alpha)
+                              ymin_plot=ymin, fc=fc, alpha=alpha,
+                              **kwargs)
       return ax
 
    def plot_galaxy(self, ax, color1, color1_err, color2, color2_err, **ebar_kwargs):
